@@ -19,7 +19,7 @@ regular:
 typisch: 3,0mA - max: 3,4mA (3,3V)
 
 
-#totaal:
+# totaal:
 idle: 105µA + 3mA
 Active: 3,4mA + 100mA
 
