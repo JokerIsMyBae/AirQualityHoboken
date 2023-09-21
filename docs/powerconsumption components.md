@@ -1,4 +1,4 @@
-#SEN55
+# SEN55
 
 idle: 
 typisch: 2.6mA - max: 3mA
@@ -7,7 +7,7 @@ Measurement-Mode (first 60 seconds):
 typisch: 70mA - max: 100mA
 
 
-#SGP41 VOC&nox sensor
+# SGP41 VOC&nox sensor
 
 idle:
 typisch: 34µA-105µA (3,3V)
