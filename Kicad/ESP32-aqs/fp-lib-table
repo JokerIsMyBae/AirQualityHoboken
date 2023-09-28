@@ -1,0 +1,6 @@
+(fp_lib_table
+  (lib (name "footprints en symbolen")(type "KiCad")(uri "D:/jordy/Games/Unity_Games/ML-Agents/Shared projects/AirQualityHoboken/Kicad/footprints en symbolen.pretty")(options "")(descr ""))
+  (lib (name "ESP32-aqs")(type "KiCad")(uri "D:/jordy/Games/Unity_Games/ML-Agents/Shared projects/AirQualityHoboken/Kicad/footprints en symbolen/ESP32-aqs.pretty")(options "")(descr ""))
+  (lib (name "SGP41-D-R4")(type "KiCad")(uri "D:/jordy/Games/Unity_Games/ML-Agents/Shared projects/AirQualityHoboken/Kicad/footprints en symbolen/SGP41-D-R4.pretty")(options "")(descr ""))
+  (lib (name "ESP32-WROOM-32")(type "KiCad")(uri "D:/jordy/Games/Unity_Games/ML-Agents/Shared projects/AirQualityHoboken/Kicad/footprints en symbolen/ESP32-WROOM-32.pretty")(options "")(descr ""))
+)
