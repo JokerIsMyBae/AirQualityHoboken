@@ -1,3 +1,5 @@
+//https://learn.circuit.rocks/long-range-lora-communication-for-devices-that-have-no-wifi-connection-available
+//https://github.com/PaulStoffregen/RadioHead
 #include <Arduino.h>
 #include <RH_RF95.h>
 
