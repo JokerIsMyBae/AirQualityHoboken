@@ -14,6 +14,9 @@ massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex, noxIndex
 void setup() {
   
   Serial.begin(115200);
+    while (!Serial) {
+        delay(100);
+    }
 
   Wire.begin();
   sen55.begin(Wire);
@@ -23,6 +26,7 @@ void setup() {
 
 
 void loop() {
+  
   error = sen55.startMeasurement();
   if (error) {
     Serial.print("Error trying to execute startMeasurement(): ");
@@ -49,7 +53,47 @@ void loop() {
     Serial.print("Error trying to execute readMeasuredValues(): ");
     errorToString(error, errorMsg, 256);
     Serial.println(errorMsg);
-  }
+  } else {
+        Serial.print("MassConcentrationPm1p0:");
+        Serial.print(massConcentrationPm1p0);
+        Serial.print("\t");
+        Serial.print("MassConcentrationPm2p5:");
+        Serial.print(massConcentrationPm2p5);
+        Serial.print("\t");
+        Serial.print("MassConcentrationPm4p0:");
+        Serial.print(massConcentrationPm4p0);
+        Serial.print("\t");
+        Serial.print("MassConcentrationPm10p0:");
+        Serial.print(massConcentrationPm10p0);
+        Serial.print("\t");
+        Serial.print("AmbientHumidity:");
+        if (isnan(ambientHumidity)) {
+            Serial.print("n/a");
+        } else {
+            Serial.print(ambientHumidity);
+        }
+        Serial.print("\t");
+        Serial.print("AmbientTemperature:");
+        if (isnan(ambientTemperature)) {
+            Serial.print("n/a");
+        } else {
+            Serial.print(ambientTemperature);
+        }
+        Serial.print("\t");
+        Serial.print("VocIndex:");
+        if (isnan(vocIndex)) {
+            Serial.print("n/a");
+        } else {
+            Serial.print(vocIndex);
+        }
+        Serial.print("\t");
+        Serial.print("NoxIndex:");
+        if (isnan(noxIndex)) {
+            Serial.println("n/a");
+        } else {
+            Serial.println(noxIndex);
+        }
+    }
 
   error = sen55.stopMeasurement();
   if (error) {
