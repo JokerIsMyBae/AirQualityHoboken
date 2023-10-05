@@ -4,56 +4,40 @@
 
 SensirionI2CSen5x sen55;
 
-uint16_t error;
-char errorMsg[256];
-bool dataReady = false;
-
-float massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, 
-massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex, noxIndex;
+uint16_t measurementLoop(
+    float& massConcentrationPm1p0, float& massConcentrationPm2p5, float& massConcentrationPm4p0, 
+    float& massConcentrationPm10p0, float& ambientHumidity, float& ambientTemperature, float& vocIndex, 
+    float& noxIndex); 
 
 void setup() {
   
-  Serial.begin(115200);
+    Serial.begin(115200);
     while (!Serial) {
         delay(100);
     }
 
-  Wire.begin();
-  sen55.begin(Wire);
+    Wire.begin();
+    sen55.begin(Wire);
 
 }
 
-
-
 void loop() {
-  
-  error = sen55.startMeasurement();
-  if (error) {
-    Serial.print("Error trying to execute startMeasurement(): ");
-    errorToString(error, errorMsg, 256);
-    Serial.println(errorMsg);
-  }
-  
-  do {
-    error = sen55.readDataReady(dataReady);
-    if (error) {
-      Serial.print("Error trying to read dataReady flag: ");
-      errorToString(error, errorMsg, 256);
-      Serial.println(errorMsg);
-    }
-    delay(1);
-  } while (!dataReady);
+    uint16_t error;
+    char errorMsg[256];
+    float massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, 
+    massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex, noxIndex;
 
-  error = sen55.readMeasuredValues(
-    massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0,
-    massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex,
-    noxIndex
-    );
-  if (error) {
-    Serial.print("Error trying to execute readMeasuredValues(): ");
-    errorToString(error, errorMsg, 256);
-    Serial.println(errorMsg);
-  } else {
+    error = measurementLoop(
+        massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, 
+        massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex, 
+        noxIndex
+        );
+    if (error) {
+        Serial.print("Error trying to execute measurements: ");
+        errorToString(error, errorMsg, 256);
+        Serial.println(errorMsg);
+    }
+    else {
         Serial.print("MassConcentrationPm1p0:");
         Serial.print(massConcentrationPm1p0);
         Serial.print("\t");
@@ -94,12 +78,34 @@ void loop() {
             Serial.println(noxIndex);
         }
     }
+}
 
-  error = sen55.stopMeasurement();
-  if (error) {
-    Serial.print("Error returning sensor to idle: ");
-    errorToString(error, errorMsg, 256);
-    Serial.println(errorMsg);
-  }
+uint16_t measurementLoop(
+    float& massConcentrationPm1p0, float& massConcentrationPm2p5, float& massConcentrationPm4p0, 
+    float& massConcentrationPm10p0, float& ambientHumidity, float& ambientTemperature, float& vocIndex, 
+    float& noxIndex) {
+    uint16_t error = 0x0000;
+    bool dataReady = false;
 
+    error = sen55.startMeasurement();
+    if (error)
+        return error;
+    do {
+        error = sen55.readDataReady(dataReady);
+        if (error)
+            return error;
+        delay(1);
+    } while ( !dataReady );
+
+    error = sen55.readMeasuredValues(
+        massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0,
+        massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex,
+        noxIndex
+    );
+    if (error)
+        return error;
+    
+    error = sen55.stopMeasurement();
+
+    return error;
 }
