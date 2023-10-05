@@ -347,10 +347,10 @@ void loop() {
     }
   
  
- txBuffer[0] = int(srawVoc) & 0xFF;
- txBuffer[1] = int(srawVoc) & 0xFF;
- txBuffer[2] = int(srawNox) & 0xFF;
- txBuffer[3] = int(srawNox) & 0xFF;
+ txBuffer[0] = highByte(srawVoc) & 0xFF;
+ txBuffer[1] = lowByte(srawVoc) & 0xFF;
+ txBuffer[2] = highByte(srawNox) & 0xFF;
+ txBuffer[3] = lowByte(srawNox) & 0xFF;
   
 
   //txBuffer[0] = int(distance_cm) & 0xFF;    -> dit toevoegen voor data leesbaar te maken in ttn
