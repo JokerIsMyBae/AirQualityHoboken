@@ -7,6 +7,8 @@
 #define TRIG_PIN 13
 #define ECHO_PIN 21
 
+float duration_us, distance_cm;
+
 AXP20X_Class axp;
 bool pmu_irq = false;
 String baChStatus = "No charging";
@@ -236,6 +238,10 @@ void setup() {
 
   pinMode(ECHO_PIN, INPUT);
 
+  
+   pinMode(14, OUTPUT);
+   pinMode(15, OUTPUT);
+
   // Debug
 #ifdef DEBUG_PORT
   DEBUG_PORT.begin(SERIAL_BAUD);
@@ -278,6 +284,36 @@ void setup() {
 
 
 void loop() {
+   // Wait a few seconds between measurements.
+
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(1000);
+  digitalWrite(TRIG_PIN, LOW);
+
+  duration_us = pulseIn(ECHO_PIN, HIGH);
+
+
+  distance_cm = 0.017 * duration_us;
+
+  Serial.print("distance: ");
+  Serial.print(distance_cm);
+  Serial.println(" cm");
+
+
+delay(500);
+
+  if (distance_cm < 10) {
+    digitalWrite(15, HIGH),
+    digitalWrite(14, LOW);}
+
+    else if(distance_cm > 10){
+    digitalWrite(15, LOW),
+    digitalWrite(14, HIGH);}
+;
+  
+ 
+ txBuffer[0] = int(distance_cm) & 0xFF;
+  
 
   //txBuffer[0] = int(distance_cm) & 0xFF;    -> dit toevoegen voor data leesbaar te maken in ttn
 
