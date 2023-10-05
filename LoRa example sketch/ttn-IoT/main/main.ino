@@ -7,7 +7,14 @@
 #define TRIG_PIN 13
 #define ECHO_PIN 21
 
-float duration_us, distance_cm;
+// Sensor code sgp41
+#include <SensirionI2CSgp41.h>
+
+#define DEFAULT_RH 0x8000
+#define DEFAULT_T  0x6666
+
+SensirionI2CSgp41 sgp41;
+
 
 AXP20X_Class axp;
 bool pmu_irq = false;
@@ -232,15 +239,20 @@ void initDeepSleep() {
 
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   pinMode(TRIG_PIN, OUTPUT);
 
   pinMode(ECHO_PIN, INPUT);
 
-  
-   pinMode(14, OUTPUT);
-   pinMode(15, OUTPUT);
+// sensor sgp 41
+  while (!Serial) {
+        delay(100);
+    }
+
+    Wire.begin();
+    sgp41.begin(Wire);
+
 
   // Debug
 #ifdef DEBUG_PORT
@@ -284,35 +296,61 @@ void setup() {
 
 
 void loop() {
-   // Wait a few seconds between measurements.
 
   digitalWrite(TRIG_PIN, HIGH);
   delayMicroseconds(1000);
   digitalWrite(TRIG_PIN, LOW);
 
-  duration_us = pulseIn(ECHO_PIN, HIGH);
+// sensor sgp41
+  uint16_t error;
+    char errorMsg[256];
+    uint16_t srawVoc = 0, srawNox = 0;
 
+    unsigned long conditioningStart = millis();
+    error = sgp41.executeConditioning(DEFAULT_RH, DEFAULT_T, srawVoc);
+    if (error) {
+        Serial.print("Error trying to execute executeConditioning(): ");
+        errorToString(error, errorMsg, 256);
+        Serial.println(errorMsg);
+    }
+    while ( (millis() - conditioningStart) < 10000);
 
-  distance_cm = 0.017 * duration_us;
+    error = sgp41.measureRawSignals(DEFAULT_RH, DEFAULT_T, srawVoc, srawNox);
+    if (error) {
+        Serial.print("Error trying to execute measureRawSignals(): ");
+        errorToString(error, errorMsg, 256);
+        Serial.println(errorMsg);
+    } else {
+        Serial.print("SRAW_VOC: ");
+        Serial.print(srawVoc);
+        Serial.print("\t");
+        Serial.print("SRAW_NOx: ");
+        Serial.println(srawNox);
+    }
 
-  Serial.print("distance: ");
-  Serial.print(distance_cm);
-  Serial.println(" cm");
+    error = sgp41.turnHeaterOff();
+    if (error) {
+        Serial.print("Error trying to execute turnHeaterOff(): ");
+        errorToString(error, errorMsg, 256);
+        Serial.println(errorMsg);
+    }
 
+    byte data[4];
 
-delay(500);
+    data[0] = highByte(srawVoc);
+    data[1] = lowByte(srawVoc);
+    data[2] = highByte(srawNox);
+    data[3] = lowByte(srawNox);
 
-  if (distance_cm < 10) {
-    digitalWrite(15, HIGH),
-    digitalWrite(14, LOW);}
-
-    else if(distance_cm > 10){
-    digitalWrite(15, LOW),
-    digitalWrite(14, HIGH);}
-;
+    for (byte i = 0; i < 4; i++) {
+        Serial.println(data[i]);
+    }
   
  
- txBuffer[0] = int(distance_cm) & 0xFF;
+ txBuffer[0] = int(srawVoc) & 0xFF;
+ txBuffer[1] = int(srawVoc) & 0xFF;
+ txBuffer[2] = int(srawNox) & 0xFF;
+ txBuffer[3] = int(srawNox) & 0xFF;
   
 
   //txBuffer[0] = int(distance_cm) & 0xFF;    -> dit toevoegen voor data leesbaar te maken in ttn
