@@ -16,6 +16,7 @@ void setup() {
         delay(100);
     }
 
+    // Initialise I²C comms and initialise the sensor
     Wire.begin();
     sen55.begin(Wire);
 
@@ -27,6 +28,7 @@ void loop() {
     float massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, 
     massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex, noxIndex;
 
+    // Execute the commands needed for 1 measurement cycle 
     error = measurementLoop(
         massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, 
         massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex, 
@@ -87,16 +89,19 @@ uint16_t measurementLoop(
     uint16_t error = 0x0000;
     bool dataReady = false;
 
+    // Wake up sensor and start measurements
     error = sen55.startMeasurement();
     if (error)
         return error;
     do {
+        // Wait until data is ready
         error = sen55.readDataReady(dataReady);
         if (error)
             return error;
         delay(1);
     } while ( !dataReady );
 
+    // Read the measurements
     error = sen55.readMeasuredValues(
         massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0,
         massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex,
@@ -105,6 +110,7 @@ uint16_t measurementLoop(
     if (error)
         return error;
     
+    // Return sensor to sleep mode 
     error = sen55.stopMeasurement();
 
     return error;
