@@ -32,14 +32,14 @@ bool trySend() {
   return true;
 }
 
-void doDeepSleep(uint64_t msecToWake)
+void doDeepSleep(uint64_t secToWake)
 {
-  Serial.printf("Entering deep sleep for %llu seconds\n", msecToWake / 1000);
+  Serial.printf("Entering deep sleep for %llu seconds\n", secToWake);
 
   LMIC_shutdown(); // cleanly shutdown the radio
 
-  sleep_millis(msecToWake); 
-  // sleep_seconds(); // also an option 
+  // sleep_millis(msecToWake); // also an option  
+  sleep_seconds(secToWake); 
 }
 
 void callback(uint8_t message) {
@@ -67,6 +67,27 @@ void callback(uint8_t message) {
   }
 }
 
+uint16_t measurementLoop(uint16_t& srawVoc, uint16_t& srawNox) {
+    uint16_t error = 0x0000;
+
+    // Run conditioning of sensor on wakeup, conditioning needs to take 10s
+    unsigned long conditioningStartTime = millis();
+    error = sgp41.executeConditioning(DEFAULT_RH, DEFAULT_T, srawVoc);
+    if (error)
+        return error;
+    while ( (millis() - conditioningStartTime) <= 10000 ) { delay(1); };
+
+    // Get measurement results, pass rel. hum. & temp. as parameters
+    error = sgp41.measureRawSignals(DEFAULT_RH, DEFAULT_T, srawVoc, srawNox);
+    if (error)
+        return error;
+    
+    // Return sensor to sleep mode
+    error = sgp41.turnHeaterOff();
+    
+    return error;
+}
+
 
 void setup() {
 
@@ -83,7 +104,6 @@ void setup() {
 
   // TTN setup
   if (!ttn_setup()) {
-
     if (REQUIRE_RADIO) {
       delay(MESSAGE_TO_SLEEP_DELAY);
       sleep_forever();
@@ -102,22 +122,15 @@ void loop() {
   uint16_t error;
   char errorMsg[256];
   uint16_t srawVoc = 0, srawNox = 0;
+  byte data[4];
 
-  unsigned long conditioningStart = millis();
-  error = sgp41.executeConditioning(DEFAULT_RH, DEFAULT_T, srawVoc);
+  error = measurementLoop(srawVoc, srawNox);
   if (error) {
-    Serial.print("Error trying to execute executeConditioning(): ");
+    Serial.print("Error trying to execute measurements: ");
     errorToString(error, errorMsg, 256);
     Serial.println(errorMsg);
   }
-  while ( (millis() - conditioningStart) < 10000);
-
-  error = sgp41.measureRawSignals(DEFAULT_RH, DEFAULT_T, srawVoc, srawNox);
-  if (error) {
-    Serial.print("Error trying to execute measureRawSignals(): ");
-    errorToString(error, errorMsg, 256);
-    Serial.println(errorMsg);
-  } else {
+  else {
     Serial.print("SRAW_VOC: ");
     Serial.print(srawVoc);
     Serial.print("\t");
@@ -125,15 +138,7 @@ void loop() {
     Serial.println(srawNox);
   }
 
-  error = sgp41.turnHeaterOff();
-  if (error) {
-    Serial.print("Error trying to execute turnHeaterOff(): ");
-    errorToString(error, errorMsg, 256);
-    Serial.println(errorMsg);
-  }
-
-  byte data[4];
-
+  // Split measurements into bytes for sending over LoRaWAN
   data[0] = highByte(srawVoc);
   data[1] = lowByte(srawVoc);
   data[2] = highByte(srawNox);
@@ -143,12 +148,11 @@ void loop() {
     Serial.println(data[i]);
   }
   
- 
- txBuffer[0] = highByte(srawVoc) & 0xFF;
- txBuffer[1] = lowByte(srawVoc) & 0xFF;
- txBuffer[2] = highByte(srawNox) & 0xFF;
- txBuffer[3] = lowByte(srawNox) & 0xFF;
-  
+  txBuffer[0] = highByte(srawVoc) & 0xFF;
+  txBuffer[1] = lowByte(srawVoc) & 0xFF;
+  txBuffer[2] = highByte(srawNox) & 0xFF;
+  txBuffer[3] = lowByte(srawNox) & 0xFF;
+
   ttn_loop();
 
   if (packetSent) {
@@ -176,3 +180,4 @@ void loop() {
 
   }
 }
+
