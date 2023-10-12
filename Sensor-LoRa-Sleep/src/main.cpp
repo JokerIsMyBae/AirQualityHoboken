@@ -1,13 +1,13 @@
 #include <Arduino.h>
-#include "rom/rtc.h"
 #include <Wire.h>
-#include <lmic.h>
 
+#include <lmic.h>
 #include <SensirionI2CSgp41.h>
 
-#define LORAWAN_PORT 10
-#define SERIAL_BAUD 115200
-#define SEND_INTERVAL (20 * 1000)
+#include <configuration.h>
+#include <sleep.h>
+#include <ttn.h>
+
 #define DATA_LENGTH 10
 
 #define DEFAULT_RH 0x8000
@@ -38,14 +38,9 @@ void doDeepSleep(uint64_t msecToWake)
 
   LMIC_shutdown(); // cleanly shutdown the radio
 
-  // FIXME - use an external 10k pulldown so we can leave the RTC peripherals powered off
-  // until then we need the following lines
-  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
-
-  esp_sleep_enable_timer_wakeup(msecToWake * 1000ULL); // call expects usecs
-  esp_deep_sleep_start();                              // TBD mA sleep current (battery)
+  sleep_millis(msecToWake); 
+  // sleep_seconds(); // also an option 
 }
-
 
 void callback(uint8_t message) {
   bool ttn_joined = false;

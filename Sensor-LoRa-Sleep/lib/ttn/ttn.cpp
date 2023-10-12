@@ -236,60 +236,39 @@ void ttn_join() {
     LMIC_setClockError(MAX_CLOCK_ERROR * CLOCK_ERROR / 100);
     #endif
 
-        #if defined(CFG_eu868)
+    // Set up the channels used by the Things Network, which corresponds
+    // to the defaults of most gateways. Without this, only three base
+    // channels from the LoRaWAN specification are used, which certainly
+    // works, so it is good for debugging, but can overload those
+    // frequencies, so be sure to configure the full frequency range of
+    // your network here (unless your network autoconfigures them).
+    // Setting up channels should happen after LMIC_setSession, as that
+    // configures the minimal channel set.
+    LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+    LMIC_setupChannel(1, 868300000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
+    LMIC_setupChannel(2, 868500000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+    LMIC_setupChannel(3, 867100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+    LMIC_setupChannel(4, 867300000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+    LMIC_setupChannel(5, 867500000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+    LMIC_setupChannel(6, 867700000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+    LMIC_setupChannel(7, 867900000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+    LMIC_setupChannel(8, 868800000, DR_RANGE_MAP(DR_FSK,  DR_FSK),  BAND_MILLI);      // g2-band
 
-            // Set up the channels used by the Things Network, which corresponds
-            // to the defaults of most gateways. Without this, only three base
-            // channels from the LoRaWAN specification are used, which certainly
-            // works, so it is good for debugging, but can overload those
-            // frequencies, so be sure to configure the full frequency range of
-            // your network here (unless your network autoconfigures them).
-            // Setting up channels should happen after LMIC_setSession, as that
-            // configures the minimal channel set.
-            LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-            LMIC_setupChannel(1, 868300000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
-            LMIC_setupChannel(2, 868500000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-            LMIC_setupChannel(3, 867100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-            LMIC_setupChannel(4, 867300000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-            LMIC_setupChannel(5, 867500000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-            LMIC_setupChannel(6, 867700000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-            LMIC_setupChannel(7, 867900000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-            LMIC_setupChannel(8, 868800000, DR_RANGE_MAP(DR_FSK,  DR_FSK),  BAND_MILLI);      // g2-band
 
-        #elif defined(CFG_us915)
+    // TTN defines an additional channel at 869.525Mhz using SF9 for class B
+    // devices' ping slots. LMIC does not have an easy way to define set this
+    // frequency and support for class B is spotty and untested, so this
+    // frequency is not configured here.
 
-            // NA-US channels 0-71 are configured automatically
-            // but only one group of 8 should (a subband) should be active
-            // TTN recommends the second sub band, 1 in a zero based count.
-            // https://github.com/TheThingsNetwork/gateway-conf/blob/master/US-global_conf.json
-            // in the US, with TTN, it saves join time if we start on subband 1
-            // (channels 8-15). This will get overridden after the join by
-            // parameters from the network. If working with other networks or in
-            // other regions, this will need to be changed.
-            LMIC_selectSubBand(1);
+    // Disable link check validation
+    LMIC_setLinkCheckMode(0);
 
-        #elif defined(CFG_au915)
-
-            // set sub band for AU915
-            // https://github.com/TheThingsNetwork/gateway-conf/blob/master/AU-global_conf.json
-            LMIC_selectSubBand(1);
-        
-        #endif
-
-        // TTN defines an additional channel at 869.525Mhz using SF9 for class B
-        // devices' ping slots. LMIC does not have an easy way to define set this
-        // frequency and support for class B is spotty and untested, so this
-        // frequency is not configured here.
-
-        // Disable link check validation
-        LMIC_setLinkCheckMode(0);
-
-        #ifdef SINGLE_CHANNEL_GATEWAY
-        forceTxSingleChannelDr();
-        #else
-        // Set default rate and transmit power for uplink (note: txpow seems to be ignored by the library)
-        ttn_sf(LORAWAN_SF);
-        #endif
+    #ifdef SINGLE_CHANNEL_GATEWAY
+    forceTxSingleChannelDr();
+    #else
+    // Set default rate and transmit power for uplink (note: txpow seems to be ignored by the library)
+    ttn_sf(LORAWAN_SF);
+    #endif
 
     #if defined(USE_ABP)
 
