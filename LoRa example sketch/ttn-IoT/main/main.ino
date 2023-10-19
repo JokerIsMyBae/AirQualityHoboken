@@ -4,9 +4,6 @@
 
 #include "axp20x.h"
 
-#define TRIG_PIN 13
-#define ECHO_PIN 21
-
 // Sensor code sgp41
 #include <SensirionI2CSgp41.h>
 
@@ -241,17 +238,13 @@ void initDeepSleep() {
 void setup() {
   Serial.begin(115200);
 
-  pinMode(TRIG_PIN, OUTPUT);
-
-  pinMode(ECHO_PIN, INPUT);
-
-// sensor sgp 41
+  // sensor sgp 41
   while (!Serial) {
-        delay(100);
-    }
+    delay(100);
+  }
 
-    Wire.begin();
-    sgp41.begin(Wire);
+  Wire.begin();
+  sgp41.begin(Wire);
 
 
   // Debug
@@ -297,61 +290,57 @@ void setup() {
 
 void loop() {
 
-  digitalWrite(TRIG_PIN, HIGH);
-  delayMicroseconds(1000);
-  digitalWrite(TRIG_PIN, LOW);
-
-// sensor sgp41
+  // sensor sgp41
   uint16_t error;
-    char errorMsg[256];
-    uint16_t srawVoc = 0, srawNox = 0;
+  char errorMsg[256];
+  uint16_t srawVoc = 0, srawNox = 0;
 
-    unsigned long conditioningStart = millis();
-    error = sgp41.executeConditioning(DEFAULT_RH, DEFAULT_T, srawVoc);
-    if (error) {
-        Serial.print("Error trying to execute executeConditioning(): ");
-        errorToString(error, errorMsg, 256);
-        Serial.println(errorMsg);
-    }
-    while ( (millis() - conditioningStart) < 10000);
+  unsigned long conditioningStart = millis();
+  error = sgp41.executeConditioning(DEFAULT_RH, DEFAULT_T, srawVoc);
+  if (error) {
+    Serial.print("Error trying to execute executeConditioning(): ");
+    errorToString(error, errorMsg, 256);
+    Serial.println(errorMsg);
+  }
+  while ( (millis() - conditioningStart) < 10000);
 
-    error = sgp41.measureRawSignals(DEFAULT_RH, DEFAULT_T, srawVoc, srawNox);
-    if (error) {
-        Serial.print("Error trying to execute measureRawSignals(): ");
-        errorToString(error, errorMsg, 256);
-        Serial.println(errorMsg);
-    } else {
-        Serial.print("SRAW_VOC: ");
-        Serial.print(srawVoc);
-        Serial.print("\t");
-        Serial.print("SRAW_NOx: ");
-        Serial.println(srawNox);
-    }
+  error = sgp41.measureRawSignals(DEFAULT_RH, DEFAULT_T, srawVoc, srawNox);
+  if (error) {
+    Serial.print("Error trying to execute measureRawSignals(): ");
+    errorToString(error, errorMsg, 256);
+    Serial.println(errorMsg);
+  } else {
+    Serial.print("SRAW_VOC: ");
+    Serial.print(srawVoc);
+    Serial.print("\t");
+    Serial.print("SRAW_NOx: ");
+    Serial.println(srawNox);
+  }
 
-    error = sgp41.turnHeaterOff();
-    if (error) {
-        Serial.print("Error trying to execute turnHeaterOff(): ");
-        errorToString(error, errorMsg, 256);
-        Serial.println(errorMsg);
-    }
+  error = sgp41.turnHeaterOff();
+  if (error) {
+    Serial.print("Error trying to execute turnHeaterOff(): ");
+    errorToString(error, errorMsg, 256);
+    Serial.println(errorMsg);
+  }
 
-    byte data[4];
+  byte data[4];
 
-    data[0] = highByte(srawVoc);
-    data[1] = lowByte(srawVoc);
-    data[2] = highByte(srawNox);
-    data[3] = lowByte(srawNox);
+  data[0] = highByte(srawVoc);
+  data[1] = lowByte(srawVoc);
+  data[2] = highByte(srawNox);
+  data[3] = lowByte(srawNox);
 
-    for (byte i = 0; i < 4; i++) {
-        Serial.println(data[i]);
-    }
-  
- 
- txBuffer[0] = highByte(srawVoc) & 0xFF;
- txBuffer[1] = lowByte(srawVoc) & 0xFF;
- txBuffer[2] = highByte(srawNox) & 0xFF;
- txBuffer[3] = lowByte(srawNox) & 0xFF;
-  
+  for (byte i = 0; i < 4; i++) {
+    Serial.println(data[i]);
+  }
+
+
+  txBuffer[0] = highByte(srawVoc) & 0xFF;
+  txBuffer[1] = lowByte(srawVoc) & 0xFF;
+  txBuffer[2] = highByte(srawNox) & 0xFF;
+  txBuffer[3] = lowByte(srawNox) & 0xFF;
+
 
   //txBuffer[0] = int(distance_cm) & 0xFF;    -> dit toevoegen voor data leesbaar te maken in ttn
 
