@@ -1,16 +1,16 @@
 #include <Arduino.h>
-#include <SensirionI2CSgp41.h>
+#include <SensirionI2CSen5x.h>
 #include <Wire.h>
 
-#define DEFAULT_RH 0x8000
-#define DEFAULT_T  0x6666
+SensirionI2CSen5x sen55;
 
-uint16_t measurementLoop(uint16_t& srawVoc, uint16_t& srawNox);
-
-SensirionI2CSgp41 sgp41;
+uint16_t measurementLoop(
+    float& massConcentrationPm1p0, float& massConcentrationPm2p5, float& massConcentrationPm4p0, 
+    float& massConcentrationPm10p0, float& ambientHumidity, float& ambientTemperature, float& vocIndex, 
+    float& noxIndex); 
 
 void setup() {
-
+  
     Serial.begin(115200);
     while (!Serial) {
         delay(100);
@@ -18,59 +18,101 @@ void setup() {
 
     // Initialise I²C comms and initialise the sensor
     Wire.begin();
-    sgp41.begin(Wire);
+    sen55.begin(Wire);
 
 }
 
 void loop() {
     uint16_t error;
     char errorMsg[256];
-    uint16_t srawVoc = 0, srawNox = 0;
-    byte data[4];
+    float massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, 
+    massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex, noxIndex;
 
     // Execute the commands needed for 1 measurement cycle 
-    error = measurementLoop(srawVoc, srawNox);
+    error = measurementLoop(
+        massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, 
+        massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex, 
+        noxIndex
+        );
     if (error) {
         Serial.print("Error trying to execute measurements: ");
         errorToString(error, errorMsg, 256);
         Serial.println(errorMsg);
     }
     else {
-        Serial.print("SRAW_VOC: ");
-        Serial.print(srawVoc);
+        Serial.print("MassConcentrationPm1p0:");
+        Serial.print(massConcentrationPm1p0);
         Serial.print("\t");
-        Serial.print("SRAW_NOx: ");
-        Serial.println(srawNox);
+        Serial.print("MassConcentrationPm2p5:");
+        Serial.print(massConcentrationPm2p5);
+        Serial.print("\t");
+        Serial.print("MassConcentrationPm4p0:");
+        Serial.print(massConcentrationPm4p0);
+        Serial.print("\t");
+        Serial.print("MassConcentrationPm10p0:");
+        Serial.print(massConcentrationPm10p0);
+        Serial.print("\t");
+        Serial.print("AmbientHumidity:");
+        if (isnan(ambientHumidity)) {
+            Serial.print("n/a");
+        } else {
+            Serial.print(ambientHumidity);
+        }
+        Serial.print("\t");
+        Serial.print("AmbientTemperature:");
+        if (isnan(ambientTemperature)) {
+            Serial.print("n/a");
+        } else {
+            Serial.print(ambientTemperature);
+        }
+        Serial.print("\t");
+        Serial.print("VocIndex:");
+        if (isnan(vocIndex)) {
+            Serial.print("n/a");
+        } else {
+            Serial.print(vocIndex);
+        }
+        Serial.print("\t");
+        Serial.print("NoxIndex:");
+        if (isnan(noxIndex)) {
+            Serial.println("n/a");
+        } else {
+            Serial.println(noxIndex);
+        }
     }
 
-    // Split measurements into bytes for sending over LoRaWAN
-    data[0] = highByte(srawVoc);
-    data[1] = lowByte(srawVoc);
-    data[2] = highByte(srawNox);
-    data[3] = lowByte(srawNox);
-
-    for (byte i = 0; i < 4; i++) {
-        Serial.println(data[i]);
-    }
+    delay(2000);
 }
 
-uint16_t measurementLoop(uint16_t& srawVoc, uint16_t& srawNox) {
+uint16_t measurementLoop(
+    float& massConcentrationPm1p0, float& massConcentrationPm2p5, float& massConcentrationPm4p0, 
+    float& massConcentrationPm10p0, float& ambientHumidity, float& ambientTemperature, float& vocIndex, 
+    float& noxIndex) {
     uint16_t error = 0x0000;
 
-    // Run conditioning of sensor on wakeup, conditioning needs to take 10s
-    unsigned long conditioningStartTime = millis();
-    error = sgp41.executeConditioning(DEFAULT_RH, DEFAULT_T, srawVoc);
+    Serial.println("Starting measurement");
+    // Wake up sensor and start measurements
+    error = sen55.startMeasurement();
     if (error)
         return error;
-    while ( (millis() - conditioningStartTime) <= 10000 ) { delay(1); };
+    
+    // SLEEP MCU FOR 2.5 TO 3 MINUTES FOR RELIABLE MEASUREMENTS
+    delay(150000); 
 
-    // Get measurement results, pass rel. hum. & temp. as parameters
-    error = sgp41.measureRawSignals(DEFAULT_RH, DEFAULT_T, srawVoc, srawNox);
+    // Read the measurements
+    error = sen55.readMeasuredValues(
+        massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0,
+        massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex,
+        noxIndex
+    );
     if (error)
         return error;
+
+    Serial.println("Read the measurements");
     
-    // Return sensor to sleep mode
-    error = sgp41.turnHeaterOff();
-    
+    // Return sensor to sleep mode 
+    error = sen55.stopMeasurement();
+
+    Serial.println("Back to sleep");
     return error;
 }
