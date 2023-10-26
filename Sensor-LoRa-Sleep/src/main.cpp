@@ -77,7 +77,7 @@ uint16_t measurementLoop(uint16_t& srawVoc, uint16_t& srawNox) {
         return error;
     while ( (millis() - conditioningStartTime) <= 10000 ) { delay(1); };
 
-    // Get measurement results, pass rel. hum. & temp. as parameters
+    // Get measurement results, pass rel. hum. & temp. by reference
     error = sgp41.measureRawSignals(DEFAULT_RH, DEFAULT_T, srawVoc, srawNox);
     if (error)
         return error;
