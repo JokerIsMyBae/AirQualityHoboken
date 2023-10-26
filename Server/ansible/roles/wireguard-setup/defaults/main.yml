@@ -1,0 +1,6 @@
+---
+# defaults file for ansible/roles/wireguard-setup
+wireguard_server_address:
+allowed_ips1:
+allowed_ips2:
+listen_port:

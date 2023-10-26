@@ -1,0 +1,49 @@
+---
+- name: Install UFW
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+- name: Enabled UFW service
+  ansible.builtin.service:
+    name: ufw
+    enabled: true
+
+- name: Allow SSH
+  community.general.ufw:
+    proto: tcp
+    port: ssh
+    rule: limit # limit amount of loggins for bruteforce attacks
+
+- name: Allow HTTPS
+  community.general.ufw:
+    port: '443'
+    proto: tcp
+    rule: allow
+
+- name: Allow HTTP
+  community.general.ufw:
+    port: '80'
+    proto: tcp
+    rule: allow
+
+- name: Allow Mosquitto
+  community.general.ufw:
+    port: '1883'
+    proto: tcp
+    rule: allow
+
+- name: Allow Wireguard port
+  community.general.ufw:
+    port: '51820'
+    proto: udp
+    rule: allow
+
+- name: Restart UFW service
+  ansible.builtin.service:
+    name: ufw
+    state: restarted
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled

@@ -1,0 +1,112 @@
+---
+# tasks file for ansible/roles/wireguard-setup
+- name: Install wireguard
+  ansible.builtin.apt:
+    pkg: wireguard
+  become: true
+
+  # generate all the keys
+
+- name: Generate private server key
+  ansible.builtin.shell: "wg genkey > /etc/wireguard/private_server.key"
+  become: true
+
+- name: Generate public server key
+  ansible.builtin.shell: "cat /etc/wireguard/private_server.key | wg pubkey > /etc/wireguard/public_server.key"
+  become: true
+
+- name: Generate private client1 key
+  ansible.builtin.shell: "wg genkey > /etc/wireguard/private_client1.key"
+  become: true
+
+- name: Generate public client1 key
+  ansible.builtin.shell: "cat /etc/wireguard/private_client1.key | wg pubkey > /etc/wireguard/public_client1.key"
+  become: true
+
+- name: Generate private client2 key
+  ansible.builtin.shell: "wg genkey > /etc/wireguard/private_client2.key"
+  become: true
+
+- name: Generate public client2 key
+  ansible.builtin.shell: "cat /etc/wireguard/private_client2.key | wg pubkey > /etc/wireguard/public_client2.key"
+  become: true
+
+  # get all the keys & store them in variables with the 'register' keyword
+
+- name: Get private server key
+  ansible.builtin.shell: cat /etc/wireguard/private_server.key
+  register: private_key_server
+  become: true
+
+- name: Get public client1 key
+  ansible.builtin.shell: cat /etc/wireguard/public_client1.key
+  register: public_key_client1
+  become: true
+
+- name: Get public client2 key
+  ansible.builtin.shell: cat /etc/wireguard/public_client2.key
+  register: public_key_client2
+  become: true
+
+- name: Copy local server config file to remote machine
+  ansible.builtin.copy:
+    src: files/wg0-server.conf
+    dest: /etc/wireguard/wg0.conf
+    mode: preserve
+  become: true
+
+- name: Insert private key into server config file
+  ansible.builtin.lineinfile:
+    path: /etc/wireguard/wg0.conf
+    regexp: '^PrivateKey ='
+    line: 'PrivateKey = {{ private_key_server.stdout }}'
+    backrefs: true
+  become: true
+
+- name: Insert wireguard server address into server config file
+  ansible.builtin.lineinfile:
+    path: /etc/wireguard/wg0.conf
+    regexp: '^Address ='
+    line: 'Address = {{ wireguard_server_address }}'
+    backrefs: true
+  become: true
+
+- name: Insert public client1 key into server config file
+  ansible.builtin.lineinfile:
+    path: /etc/wireguard/wg0.conf
+    regexp: '^# Gateway 1$'
+    insertbefore: '^# Gateway 2$'
+    line: |
+      [Peer]
+      PublicKey = {{ public_key_client1.stdout }}
+      AllowedIPs = {{ allowed_ips1 }}
+  become: true
+
+- name: Insert public client2 key into server config file
+  ansible.builtin.lineinfile:
+    path: /etc/wireguard/wg0.conf
+    regexp: '^# Gateway 2$'
+    line: |
+      [Peer]
+      PublicKey = {{ public_key_client2.stdout }}
+      AllowedIPs = {{ allowed_ips2 }}
+  become: true
+
+- name: Insert listen port into server config file
+  ansible.builtin.lineinfile:
+    path: /etc/wireguard/wg0.conf
+    regexp: '^ListenPort ='
+    line: 'ListenPort = {{ listen_port }}'
+    backrefs: true
+  become: true
+
+- name: Reload wireguard service
+  ansible.builtin.systemd:
+    name: wg-quick@wg0
+    enabled: true
+    state: reloaded
+  become: true
+
+- name: Add client public key to server
+  ansible.builtin.shell: wg set wg0 peer {{ public_key_client1.stdout }} allowed-ips {{ allowed_ips1 }} && wg set wg0 peer {{ public_key_client2.stdout }} allowed-ips {{ allowed_ips2 }}
+  become: true
