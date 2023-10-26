@@ -1,19 +1,15 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-#include <lmic.h>
-#include <SensirionI2CSgp41.h>
+#include <SensirionI2CSen5x.h>
 
 #include <configuration.h>
 #include <sleep.h>
 #include <ttn.h>
 
-#define DATA_LENGTH 10
+#define DATA_LENGTH 32
 
-#define DEFAULT_RH 0x8000
-#define DEFAULT_T  0x6666
-
-SensirionI2CSgp41 sgp41;
+SensirionI2CSen5x sen55;
 
 bool packetSent, packetQueued;
 
@@ -67,24 +63,36 @@ void callback(uint8_t message) {
   }
 }
 
-uint16_t measurementLoop(uint16_t& srawVoc, uint16_t& srawNox) {
+uint16_t measurementLoop(
+    float& massConcentrationPm1p0, float& massConcentrationPm2p5, float& massConcentrationPm4p0, 
+    float& massConcentrationPm10p0, float& ambientHumidity, float& ambientTemperature, float& vocIndex, 
+    float& noxIndex) {
     uint16_t error = 0x0000;
 
-    // Run conditioning of sensor on wakeup, conditioning needs to take 10s
-    unsigned long conditioningStartTime = millis();
-    error = sgp41.executeConditioning(DEFAULT_RH, DEFAULT_T, srawVoc);
+    Serial.println("Starting measurement");
+    // Wake up sensor and start measurements
+    error = sen55.startMeasurement();
     if (error)
         return error;
-    while ( (millis() - conditioningStartTime) <= 10000 ) { delay(1); };
+    
+    // SLEEP MCU FOR 2.5 TO 3 MINUTES FOR RELIABLE MEASUREMENTS
+    delay(180000);
 
-    // Get measurement results, pass rel. hum. & temp. by reference
-    error = sgp41.measureRawSignals(DEFAULT_RH, DEFAULT_T, srawVoc, srawNox);
+    // Read the measurements
+    error = sen55.readMeasuredValues(
+        massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0,
+        massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex,
+        noxIndex
+    );
     if (error)
         return error;
+
+    Serial.println("Read the measurements");
     
-    // Return sensor to sleep mode
-    error = sgp41.turnHeaterOff();
-    
+    // Return sensor to sleep mode 
+    error = sen55.stopMeasurement();
+
+    Serial.println("Back to sleep");
     return error;
 }
 
@@ -98,7 +106,7 @@ void setup() {
   }
 
   Wire.begin();
-  sgp41.begin(Wire);
+  sen55.begin(Wire);
 
   bootCount++;
 
@@ -118,40 +126,106 @@ void setup() {
 
 
 void loop() {
-
   uint16_t error;
   char errorMsg[256];
-  uint16_t srawVoc = 0, srawNox = 0;
+  float massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, 
+  massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex, noxIndex;
   byte data[4];
 
-  error = measurementLoop(srawVoc, srawNox);
+  error = measurementLoop(
+    massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, 
+    massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex, noxIndex
+    );
   if (error) {
     Serial.print("Error trying to execute measurements: ");
     errorToString(error, errorMsg, 256);
     Serial.println(errorMsg);
   }
   else {
-    Serial.print("SRAW_VOC: ");
-    Serial.print(srawVoc);
+    Serial.print("MassConcentrationPm1p0:");
+    Serial.print(massConcentrationPm1p0);
     Serial.print("\t");
-    Serial.print("SRAW_NOx: ");
-    Serial.println(srawNox);
+    Serial.print("MassConcentrationPm2p5:");
+    Serial.print(massConcentrationPm2p5);
+    Serial.print("\t");
+    Serial.print("MassConcentrationPm4p0:");
+    Serial.print(massConcentrationPm4p0);
+    Serial.print("\t");
+    Serial.print("MassConcentrationPm10p0:");
+    Serial.print(massConcentrationPm10p0);
+    Serial.print("\t");
+    Serial.print("AmbientHumidity:");
+    if (isnan(ambientHumidity)) {
+      Serial.print("n/a");
+    } else {
+      Serial.print(ambientHumidity);
+    }
+    Serial.print("\t");
+    Serial.print("AmbientTemperature:");
+    if (isnan(ambientTemperature)) {
+      Serial.print("n/a");
+    } else {
+      Serial.print(ambientTemperature);
+    }
+    Serial.print("\t");
+    Serial.print("VocIndex:");
+    if (isnan(vocIndex)) {
+      Serial.print("n/a");
+    } else {
+      Serial.print(vocIndex);
+    }
+    Serial.print("\t");
+    Serial.print("NoxIndex:");
+    if (isnan(noxIndex)) {
+      Serial.println("n/a");
+    } else {
+      Serial.println(noxIndex);
+    }
   }
 
-  // Split measurements into bytes for sending over LoRaWAN
-  data[0] = highByte(srawVoc);
-  data[1] = lowByte(srawVoc);
-  data[2] = highByte(srawNox);
-  data[3] = lowByte(srawNox);
+  uint32_t pm1p0, pm2p5, pm4p0, pm10p0, hum, temp, voc, nox;
 
-  for (byte i = 0; i < 4; i++) {
-    Serial.println(data[i]);
-  }
-  
-  txBuffer[0] = highByte(srawVoc) & 0xFF;
-  txBuffer[1] = lowByte(srawVoc) & 0xFF;
-  txBuffer[2] = highByte(srawNox) & 0xFF;
-  txBuffer[3] = lowByte(srawNox) & 0xFF;
+  pm1p0 = massConcentrationPm1p0 * 100;
+  pm2p5 = massConcentrationPm2p5 * 100;
+  pm4p0 = massConcentrationPm4p0 * 100;
+  pm10p0 = massConcentrationPm10p0 * 100;
+  hum = ambientHumidity * 100;
+  temp = (ambientTemperature +10) * 100;
+  voc = vocIndex * 100;
+  nox = noxIndex * 100;
+
+  txBuffer[0] = (pm1p0 >> 24) & 0xFF;
+  txBuffer[1] = (pm1p0 >> 16) & 0xFF;
+  txBuffer[2] = (pm1p0 >> 8) & 0xFF;
+  txBuffer[3] = (pm1p0) & 0xFF;
+  txBuffer[4] = (pm2p5 >> 24) & 0xFF;
+  txBuffer[5] = (pm2p5 >> 16) & 0xFF;
+  txBuffer[6] = (pm2p5 >> 8) & 0xFF;
+  txBuffer[7] = (pm2p5) & 0xFF;
+  txBuffer[8] = (pm4p0 >> 24) & 0xFF;
+  txBuffer[9] = (pm4p0 >> 16) & 0xFF;
+  txBuffer[10] = (pm4p0 >> 8) & 0xFF;
+  txBuffer[11] = (pm4p0) & 0xFF;
+  txBuffer[12] = (pm10p0 >> 24) & 0xFF;
+  txBuffer[13] = (pm10p0 >> 16) & 0xFF;
+  txBuffer[14] = (pm10p0 >> 8) & 0xFF;
+  txBuffer[15] = (pm10p0) & 0xFF;
+  txBuffer[16] = (hum >> 24) & 0xFF;
+  txBuffer[17] = (hum >> 16) & 0xFF;
+  txBuffer[18] = (hum >> 8) & 0xFF;
+  txBuffer[19] = (hum) & 0xFF;
+  txBuffer[20] = (temp >> 24) & 0xFF;
+  txBuffer[21] = (temp >> 16) & 0xFF;
+  txBuffer[22] = (temp >> 8) & 0xFF;
+  txBuffer[23] = (temp) & 0xFF;
+  txBuffer[24] = (voc >> 24) & 0xFF;
+  txBuffer[25] = (voc >> 16) & 0xFF;
+  txBuffer[26] = (voc >> 8) & 0xFF;
+  txBuffer[27] = (voc) & 0xFF;
+  txBuffer[28] = (nox >> 24) & 0xFF;
+  txBuffer[29] = (nox >> 16) & 0xFF;
+  txBuffer[30] = (nox >> 8) & 0xFF;
+  txBuffer[31] = (nox) & 0xFF;
 
   ttn_loop();
 
