@@ -1,0 +1,6 @@
+[FLWSB-hetzner]
+# IP = IP of the server
+# user & email = variables used in the playbook
+
+# IP        user=username   email=emailaddress
+1.2.3.4     user=flwsb      email=someone@example.com

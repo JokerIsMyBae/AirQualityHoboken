@@ -1,0 +1,115 @@
+---
+- name: Hetzner server for ESP32aqs
+  hosts: ESP32aqs
+  user: '{{ user }}'
+  vars:
+    domains:
+      - grafana.iot-ap.be
+      - api.iot-ap.be
+  roles:
+    - ufwinstall
+  tasks:
+
+# RUN THIS PLAYBOOK: ansible-playbook -K -i ansible.cfg ESP32aqs-backend-ansible.yaml
+# -K -> ask become password (root)
+# -i -> specify ansible config file
+# optional: add -v, -vv or -vvv to increase verbosity (more logs, handy when troubleshooting)
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+      become: true
+
+    - name: Install packages
+      ansible.builtin.apt:
+        pkg:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - pip
+          - git
+          - certbot
+          - python3-certbot-nginx
+        state: present
+      become: true
+
+    - name: Add Docker's GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/debian/gpg
+        state: present
+      become: true
+
+    - name: Add Docker repo
+      ansible.builtin.apt_repository:
+        repo: deb https://download.docker.com/linux/debian bullseye stable
+          # get architecture: dpkg --print-architecture
+          # get lsb release: lsb_release -cs
+        state: present
+      become: true
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+      become: true
+
+    - name: Install Docker Engine
+      ansible.builtin.apt:
+        pkg:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+      become: true
+
+    - name: Verify install
+      community.docker.docker_container:
+        name: HelloWorld
+        image: hello-world
+      become: true
+
+    - name: Install docker & docker-compose via pip
+      ansible.builtin.pip:
+        name:
+          - docker
+          - docker-compose
+      become: true
+
+    - name: Clone git repo
+      ansible.builtin.git:
+        repo: "https://github.com/jappie3/flexible-lorawan-architecture"
+        # version: LATEST
+        dest: ~/flexible-lorawan-architecture/
+        force: true # overwrite existing repo (with possibly changes)
+
+    - name: Copy .env file from local machine to remote server
+      ansible.builtin.copy:
+        src: .env
+        # copy inside cloned git repo
+        dest: ~/flexible-lorawan-architecture/src/.env
+        mode: preserve # keep same permissions as source file
+
+    - name: Generate SSL certificates
+      ansible.builtin.command: certbot certonly --agree-tos --email "{{ email }}" --standalone -d {{ item }}
+      args:
+        creates: "/etc/letsencrypt/live/{{ item }}"
+      with_items: "{{ domains }}"
+      become: true
+
+    - name: Renew certificates
+      ansible.builtin.cron:
+        name: "Renew SSL certs"
+        job: "certbot renew --quiet --post-hook 'systemctl reload nginx'"
+        minute: "0"
+        hour: "0"
+        weekday: "1"
+        # crontab runs every monday at 00:00
+
+    - name: Bring docker compose up
+      community.docker.docker_compose:
+        project_src: flexible-lorawan-architecture/src/
+        files:
+          - docker-compose.yaml
+      become: true

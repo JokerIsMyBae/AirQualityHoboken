@@ -1,0 +1,10 @@
+- name: Wireguard setup
+  hosts: FLWSBhetzner
+  user: '{{ user }}'
+  vars:
+    wireguard_server_address: "10.10.10.1"
+    allowed_ips1: "10.10.10.2"
+    allowed_ips2: "10.10.10.3"
+    listen_port: 51820
+  roles:
+    - role: wireguard-setup
