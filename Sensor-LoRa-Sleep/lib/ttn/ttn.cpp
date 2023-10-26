@@ -7,6 +7,7 @@ TTN module
 #include <Preferences.h>
 #include "configuration.h"
 #include "credentials.h"
+#include "ttn.h"
 
 // -----------------------------------------------------------------------------
 // Globals
