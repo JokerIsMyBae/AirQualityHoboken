@@ -15,9 +15,6 @@ bool packetSent, packetQueued;
 
 static uint8_t txBuffer[DATA_LENGTH];
 
-// deep sleep support
-RTC_DATA_ATTR int bootCount = 0;
-
 /**
    If we have a valid position send it to the server.
    @return true if we decided to send.
@@ -28,15 +25,15 @@ bool trySend() {
   return true;
 }
 
-void doDeepSleep(uint64_t secToWake)
-{
-  Serial.printf("Entering deep sleep for %llu seconds\n", secToWake);
+// void doDeepSleep(uint64_t secToWake)
+// {
+//   Serial.printf("Entering deep sleep for %llu seconds\n", secToWake);
 
-  LMIC_shutdown(); // cleanly shutdown the radio
+//   LMIC_shutdown(); // cleanly shutdown the radio
 
-  // sleep_millis(msecToWake); // also an option  
-  sleep_seconds(secToWake); 
-}
+//   // sleep_millis(msecToWake); // also an option  
+//   sleep_seconds(secToWake); 
+// }
 
 void callback(uint8_t message) {
   bool ttn_joined = false;
@@ -51,7 +48,6 @@ void callback(uint8_t message) {
   }
 
   if (EV_RESPONSE == message) {
-
     size_t len = ttn_response_len();
     uint8_t data[len];
     ttn_response(data, len);
@@ -76,7 +72,7 @@ uint16_t measurementLoop(
         return error;
     
     // SLEEP MCU FOR 2.5 TO 3 MINUTES FOR RELIABLE MEASUREMENTS
-    delay(180000);
+    delay(120000);
 
     // Read the measurements
     error = sen55.readMeasuredValues(
@@ -98,7 +94,6 @@ uint16_t measurementLoop(
 
 
 void setup() {
-
   Serial.begin(SERIAL_BAUD);
 
   while (!Serial) {
@@ -107,8 +102,6 @@ void setup() {
 
   Wire.begin();
   sen55.begin(Wire);
-
-  bootCount++;
 
   // TTN setup
   if (!ttn_setup()) {
@@ -130,7 +123,6 @@ void loop() {
   char errorMsg[256];
   float massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, 
   massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex, noxIndex;
-  byte data[4];
 
   error = measurementLoop(
     massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, 
@@ -184,17 +176,16 @@ void loop() {
   }
 
   uint32_t pm1p0, pm2p5, pm4p0, pm10p0, hum, temp, voc, nox;
+  uint32_t data[8] = { pm1p0, pm2p5, pm4p0, pm10p0, hum, temp, voc, nox };
 
   pm1p0 = massConcentrationPm1p0 * 100;
   pm2p5 = massConcentrationPm2p5 * 100;
   pm4p0 = massConcentrationPm4p0 * 100;
   pm10p0 = massConcentrationPm10p0 * 100;
   hum = ambientHumidity * 100;
-  temp = (ambientTemperature +10) * 100;
+  temp = (ambientTemperature + 10) * 100;
   voc = vocIndex * 100;
   nox = noxIndex * 100;
-
-  uint32_t data[8] = { pm1p0, pm2p5, pm4p0, pm10p0, hum, temp, voc, nox };
 
   for (byte i = 0; i < 8; i++) {
     txBuffer[0+i*4] = (data[i] >> 24) & 0xFF;
@@ -212,13 +203,11 @@ void loop() {
   // Send every SEND_INTERVAL millis
   static uint32_t last = 0;
   static bool first = true;
-  if (0 == last || millis() - last > SEND_INTERVAL) {
-
+  if (last == 0 || millis() - last > SEND_INTERVAL) {
     if (trySend()) {
       last = millis();
       first = false;
       Serial.println("TRANSMITTED");
-
     } else {
       if (first) {
         first = false;
@@ -230,4 +219,3 @@ void loop() {
 
   }
 }
-
