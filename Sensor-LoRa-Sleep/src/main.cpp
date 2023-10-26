@@ -7,7 +7,7 @@
 #include <sleep.h>
 #include <ttn.h>
 
-#define DATA_LENGTH 32
+#define DATA_LENGTH 16
 
 SensirionI2CSen5x sen55;
 
@@ -188,10 +188,8 @@ void loop() {
   nox = noxIndex * 100;
 
   for (byte i = 0; i < 8; i++) {
-    txBuffer[0+i*4] = (data[i] >> 24) & 0xFF;
-    txBuffer[1+i*4] = (data[i] >> 16) & 0xFF;
-    txBuffer[2+i*4] = (data[i] >> 8) & 0xFF;
-    txBuffer[3+i*4] = (data[i]) & 0xFF;
+    txBuffer[0+i*2] = (data[i] >> 8) & 0xFF;
+    txBuffer[1+i*2] = (data[i]) & 0xFF;
   }
 
   ttn_loop();
@@ -216,6 +214,5 @@ void loop() {
       // i.e. don't just keep spinning in loop as fast as we can.
       delay(100);
     }
-
   }
 }
