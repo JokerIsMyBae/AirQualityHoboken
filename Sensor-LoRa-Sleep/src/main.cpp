@@ -194,38 +194,14 @@ void loop() {
   voc = vocIndex * 100;
   nox = noxIndex * 100;
 
-  txBuffer[0] = (pm1p0 >> 24) & 0xFF;
-  txBuffer[1] = (pm1p0 >> 16) & 0xFF;
-  txBuffer[2] = (pm1p0 >> 8) & 0xFF;
-  txBuffer[3] = (pm1p0) & 0xFF;
-  txBuffer[4] = (pm2p5 >> 24) & 0xFF;
-  txBuffer[5] = (pm2p5 >> 16) & 0xFF;
-  txBuffer[6] = (pm2p5 >> 8) & 0xFF;
-  txBuffer[7] = (pm2p5) & 0xFF;
-  txBuffer[8] = (pm4p0 >> 24) & 0xFF;
-  txBuffer[9] = (pm4p0 >> 16) & 0xFF;
-  txBuffer[10] = (pm4p0 >> 8) & 0xFF;
-  txBuffer[11] = (pm4p0) & 0xFF;
-  txBuffer[12] = (pm10p0 >> 24) & 0xFF;
-  txBuffer[13] = (pm10p0 >> 16) & 0xFF;
-  txBuffer[14] = (pm10p0 >> 8) & 0xFF;
-  txBuffer[15] = (pm10p0) & 0xFF;
-  txBuffer[16] = (hum >> 24) & 0xFF;
-  txBuffer[17] = (hum >> 16) & 0xFF;
-  txBuffer[18] = (hum >> 8) & 0xFF;
-  txBuffer[19] = (hum) & 0xFF;
-  txBuffer[20] = (temp >> 24) & 0xFF;
-  txBuffer[21] = (temp >> 16) & 0xFF;
-  txBuffer[22] = (temp >> 8) & 0xFF;
-  txBuffer[23] = (temp) & 0xFF;
-  txBuffer[24] = (voc >> 24) & 0xFF;
-  txBuffer[25] = (voc >> 16) & 0xFF;
-  txBuffer[26] = (voc >> 8) & 0xFF;
-  txBuffer[27] = (voc) & 0xFF;
-  txBuffer[28] = (nox >> 24) & 0xFF;
-  txBuffer[29] = (nox >> 16) & 0xFF;
-  txBuffer[30] = (nox >> 8) & 0xFF;
-  txBuffer[31] = (nox) & 0xFF;
+  uint32_t data[8] = { pm1p0, pm2p5, pm4p0, pm10p0, hum, temp, voc, nox };
+
+  for (byte i = 0; i < 8; i++) {
+    txBuffer[0+i*4] = (data[i] >> 24) & 0xFF;
+    txBuffer[1+i*4] = (data[i] >> 16) & 0xFF;
+    txBuffer[2+i*4] = (data[i] >> 8) & 0xFF;
+    txBuffer[3+i*4] = (data[i]) & 0xFF;
+  }
 
   ttn_loop();
 
