@@ -23,15 +23,15 @@ bool try_send() {
   return true;
 }
 
-// void doDeepSleep(uint64_t secToWake)
-// {
-//   Serial.printf("Entering deep sleep for %llu seconds\n", secToWake);
+void doDeepSleep(uint64_t secToWake)
+{
+  Serial.printf("Entering deep sleep for %llu seconds\n", secToWake);
 
-//   LMIC_shutdown(); // cleanly shutdown the radio
+  LMIC_shutdown(); // cleanly shutdown the radio
 
-//   // sleep_millis(msecToWake); // also an option  
-//   sleep_seconds(secToWake); 
-// }
+  // sleep_millis(msecToWake); // also an option 
+  sleep_seconds(secToWake); 
+}
 
 void callback(uint8_t message) {
   bool ttn_joined = false;
@@ -97,11 +97,14 @@ void loop() {
   uint16_t error = 0x0000;
   char errorMsg[256];
 
+  Serial.print("Starting measurements...");
   error = sen55.startMeasurement();
 
   if (!error) {
     // SLEEP MCU FOR 2.5 TO 3 MINUTES FOR RELIABLE MEASUREMENTS
-    delay(120000);
+    doDeepSleep(120);
+
+    Serial.print("Awake again.");
 
     error = read_measurements(
       sen55, f_pm1p0, f_pm2p5, f_pm4p0, f_pm10p0, f_hum, f_temp, f_voc, f_nox
