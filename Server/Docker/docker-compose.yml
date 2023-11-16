@@ -8,7 +8,7 @@ services:
     environment:
       - TZ=Europe/Brussels
     ports:
-      - '1881:1880'
+      - '1880:1880'
     networks:
       - air-quality-hoboken
     volumes:
@@ -21,7 +21,7 @@ services:
     environment:
       - TZ=Europe/Brussels
     ports:
-      - '3001:3000'
+      - '3000:3000'
     networks:
       - air-quality-hoboken
     volumes:
@@ -36,7 +36,7 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     ports:
-      - '8087:8086'
+      - '8086:8086'
     volumes:
       - ./influxdb2-data/config:/etc/influxdb2
       - ./influxdb2-data/appdata:/var/lib/influxdb2
