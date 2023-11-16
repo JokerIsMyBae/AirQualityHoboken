@@ -7,19 +7,17 @@
 #include <sleep.h>
 #include <ttn.h>
 
-#define DATA_LENGTH 16
-
 SensirionI2CSen5x sen55;
 
 bool packetSent, packetQueued;
-
 static uint8_t txBuffer[DATA_LENGTH];
+float f_pm1p0, f_pm2p5, f_pm4p0, f_pm10p0, f_hum, f_temp, f_voc, f_nox;
 
 /**
    If we have a valid position send it to the server.
    @return true if we decided to send.
 */
-bool trySend() {
+bool try_send() {
   packetSent = false;
   ttn_send(txBuffer, DATA_LENGTH, LORAWAN_PORT, false);
   return true;
@@ -59,43 +57,20 @@ void callback(uint8_t message) {
   }
 }
 
-uint16_t measurementLoop(
-    float& massConcentrationPm1p0, float& massConcentrationPm2p5, float& massConcentrationPm4p0, 
-    float& massConcentrationPm10p0, float& ambientHumidity, float& ambientTemperature, float& vocIndex, 
-    float& noxIndex) {
-    uint16_t error = 0x0000;
+uint16_t read_measurements(SensirionI2CSen5x &sen55, float &pm1p0, float &pm2p5, float &pm4p0, 
+  float &pm10p0, float &hum, float &temp, float &voc, float &nox) {
 
-    Serial.println("Starting measurement");
-    // Wake up sensor and start measurements
-    error = sen55.startMeasurement();
-    if (error)
-        return error;
-    
-    // SLEEP MCU FOR 2.5 TO 3 MINUTES FOR RELIABLE MEASUREMENTS
-    delay(120000);
+  uint16_t error = 0x0000;
 
-    // Read the measurements
-    error = sen55.readMeasuredValues(
-        massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0,
-        massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex,
-        noxIndex
-    );
-    if (error)
-        return error;
-
-    Serial.println("Read the measurements");
-    
-    // Return sensor to sleep mode 
-    error = sen55.stopMeasurement();
-
-    Serial.println("Back to sleep");
+  error = sen55.readMeasuredValues(pm1p0, pm2p5, pm4p0, pm10p0, hum, temp, voc, nox);
+  if (error) 
     return error;
+  else
+    return sen55.stopMeasurement();
 }
-
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
-
   while (!Serial) {
     delay(100);
   }
@@ -119,15 +94,20 @@ void setup() {
 
 
 void loop() {
-  uint16_t error;
+  uint16_t error = 0x0000;
   char errorMsg[256];
-  float massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, 
-  massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex, noxIndex;
 
-  error = measurementLoop(
-    massConcentrationPm1p0, massConcentrationPm2p5, massConcentrationPm4p0, 
-    massConcentrationPm10p0, ambientHumidity, ambientTemperature, vocIndex, noxIndex
-    );
+  error = sen55.startMeasurement();
+
+  if (!error) {
+    // SLEEP MCU FOR 2.5 TO 3 MINUTES FOR RELIABLE MEASUREMENTS
+    delay(120000);
+
+    error = read_measurements(
+      sen55, f_pm1p0, f_pm2p5, f_pm4p0, f_pm10p0, f_hum, f_temp, f_voc, f_nox
+      );
+  }
+  
   if (error) {
     Serial.print("Error trying to execute measurements: ");
     errorToString(error, errorMsg, 256);
@@ -135,87 +115,82 @@ void loop() {
   }
   else {
     Serial.print("MassConcentrationPm1p0:");
-    Serial.print(massConcentrationPm1p0);
+    Serial.print(f_pm1p0);
     Serial.print("\t");
     Serial.print("MassConcentrationPm2p5:");
-    Serial.print(massConcentrationPm2p5);
+    Serial.print(f_pm2p5);
     Serial.print("\t");
     Serial.print("MassConcentrationPm4p0:");
-    Serial.print(massConcentrationPm4p0);
+    Serial.print(f_pm4p0);
     Serial.print("\t");
     Serial.print("MassConcentrationPm10p0:");
-    Serial.print(massConcentrationPm10p0);
+    Serial.print(f_pm10p0);
     Serial.print("\t");
     Serial.print("AmbientHumidity:");
-    if (isnan(ambientHumidity)) {
+    if (isnan(f_hum)) 
       Serial.print("n/a");
-    } else {
-      Serial.print(ambientHumidity);
-    }
+    else 
+      Serial.print(f_hum);
     Serial.print("\t");
     Serial.print("AmbientTemperature:");
-    if (isnan(ambientTemperature)) {
+    if (isnan(f_temp)) 
       Serial.print("n/a");
-    } else {
-      Serial.print(ambientTemperature);
-    }
+    else 
+      Serial.print(f_temp);
     Serial.print("\t");
     Serial.print("VocIndex:");
-    if (isnan(vocIndex)) {
+    if (isnan(f_voc))
       Serial.print("n/a");
-    } else {
-      Serial.print(vocIndex);
-    }
+    else
+      Serial.print(f_voc);
     Serial.print("\t");
     Serial.print("NoxIndex:");
-    if (isnan(noxIndex)) {
+    if (isnan(f_nox))
       Serial.println("n/a");
-    } else {
-      Serial.println(noxIndex);
+    else
+      Serial.println(f_nox);
+
+    uint32_t u_pm1p0 = f_pm1p0 * 100;
+    uint32_t u_pm2p5 = f_pm2p5 * 100;
+    uint32_t u_pm4p0 = f_pm4p0 * 100;
+    uint32_t u_pm10p0 = f_pm10p0 * 100;
+    uint32_t u_hum = f_hum * 100;
+    uint32_t u_temp = (f_temp + 10) * 100;
+    uint32_t u_voc = f_voc * 100;
+    uint32_t u_nox = f_nox * 100;
+
+    uint32_t data[8] = { u_pm1p0, u_pm2p5, u_pm4p0, u_pm10p0, u_hum, u_temp, u_voc, u_nox };
+
+    for (byte i = 0; i < 8; i++) {
+      txBuffer[0+i*2] = (data[i] >> 8) & 0xFF;
+      txBuffer[1+i*2] = (data[i]) & 0xFF;
     }
-  }
 
-  uint32_t pm1p0, pm2p5, pm4p0, pm10p0, hum, temp, voc, nox;
+    for (byte i = 0; i < 16; i++) {
+      Serial.print(txBuffer[i]);
+      Serial.print("\t");
+    }
 
-  pm1p0 = massConcentrationPm1p0 * 100;
-  pm2p5 = massConcentrationPm2p5 * 100;
-  pm4p0 = massConcentrationPm4p0 * 100;
-  pm10p0 = massConcentrationPm10p0 * 100;
-  hum = ambientHumidity * 100;
-  temp = (ambientTemperature + 10) * 100;
-  voc = vocIndex * 100;
-  nox = noxIndex * 100;
+    ttn_loop();
 
-  uint32_t data[8] = { pm1p0, pm2p5, pm4p0, pm10p0, hum, temp, voc, nox };
+    if (packetSent) 
+      packetSent = false;
 
-
-  for (byte i = 0; i < 8; i++) {
-    //Serial.print(data[i], HEX);
-    txBuffer[0+i*2] = (data[i] >> 8) & 0xFF;
-    txBuffer[1+i*2] = (data[i]) & 0xFF;
-  }
-
-  ttn_loop();
-
-  if (packetSent) {
-    packetSent = false;
-  }
-
-  // Send every SEND_INTERVAL millis
-  static uint32_t last = 0;
-  static bool first = true;
-  if (last == 0 || millis() - last > SEND_INTERVAL) {
-    if (trySend()) {
-      last = millis();
-      first = false;
-      Serial.println("TRANSMITTED");
-    } else {
-      if (first) {
+    // Send every SEND_INTERVAL millis
+    static uint32_t last = 0;
+    static bool first = true;
+    if (last == 0 || millis() - last > SEND_INTERVAL) {
+      if (try_send()) {
+        last = millis();
         first = false;
+        Serial.println("TRANSMITTED");
+      } else {
+        if (first) 
+          first = false;
+        // let the OS put the main CPU in low power mode for 100ms (or until another interrupt comes in)
+        // i.e. don't just keep spinning in loop as fast as we can.
+        delay(100);
       }
-      // let the OS put the main CPU in low power mode for 100ms (or until another interrupt comes in)
-      // i.e. don't just keep spinning in loop as fast as we can.
-      delay(100);
     }
   }
 }
