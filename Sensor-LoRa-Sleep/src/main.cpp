@@ -176,7 +176,6 @@ void loop() {
   }
 
   uint32_t pm1p0, pm2p5, pm4p0, pm10p0, hum, temp, voc, nox;
-  uint32_t data[8] = { pm1p0, pm2p5, pm4p0, pm10p0, hum, temp, voc, nox };
 
   pm1p0 = massConcentrationPm1p0 * 100;
   pm2p5 = massConcentrationPm2p5 * 100;
@@ -187,7 +186,11 @@ void loop() {
   voc = vocIndex * 100;
   nox = noxIndex * 100;
 
+  uint32_t data[8] = { pm1p0, pm2p5, pm4p0, pm10p0, hum, temp, voc, nox };
+
+
   for (byte i = 0; i < 8; i++) {
+    //Serial.print(data[i], HEX);
     txBuffer[0+i*2] = (data[i] >> 8) & 0xFF;
     txBuffer[1+i*2] = (data[i]) & 0xFF;
   }
