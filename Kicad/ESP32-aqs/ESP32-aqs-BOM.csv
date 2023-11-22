@@ -1,0 +1,25 @@
+Id;Designator;Footprint;Quantity;Designation;Supplier and ref;Aanwezig in labo;link jlcpcb;jlcpcb part nr;Link leverancier
+1;H2,H4;MountingHole_2.2mm_M2_ISO7380_Pad;2;MountingHole;;;;;
+2;R5,R2,R4;R_0805_2012Metric_Pad1.20x1.40mm_HandSolder;3;4k7;;J;;;
+3;IC1;QFN50P400X400X80-25N;1;CP2102N-A02-GQFN24;;X;https://jlcpcb.com/partdetail/SiliconLabs-CP2102N_A02GQFN20R/C969913;C969913;
+4;U3;XDCR_SGP41-D-R4;1;SGP41-D-R4;;J;(https://jlcpcb.com/partdetail/SensirionAg-SGP41_DR4/C3659325);C3659325;https://be.farnell.com/sensirion/sgp41-d-r4/gas-sensor-digital-dfn-6/dp/3858683?st=SGP41-D-R4
+5;C8,C1;C_0805_2012Metric_Pad1.18x1.45mm_HandSolder;2;100nF;;J;;;
+6;D1,D2,D3;LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder;3;LED;;J;;;
+7;J3;U.FL_Molex_MCRF_73412-0110_Vertical;1;ufl connector;;J;;;https://www.digikey.be/en/products/detail/molex/0734120110/1894611
+8;C5,C4,C9,C3,C10;C_0805_2012Metric_Pad1.18x1.45mm_HandSolder;5;1µF;;J;;;
+9;R1;R_0805_2012Metric_Pad1.20x1.40mm_HandSolder;1;1kΩ;;J;;;
+10;SW1,SW2;SW_PUSH_6mm;2;TC-1102-B-C-B;;X;https://jlcpcb.com/partdetail/XkbConnectivity-TC_1102_C_BB/C381024;C381024;
+11;R8,R9;R_0805_2012Metric_Pad1.20x1.40mm_HandSolder;2;1k;;J;;;
+12;U2;MODULE_ESP32-WROOM-32;1;ESP32-WROOM-32;;X;https://jlcpcb.com/partdetail/EspressifSystems-ESP32_WROOM_32N8/C529582;C529582;https://www.digikey.be/nl/products/detail/espressif-systems/ESP32-WROOM-32-N8/9381712?s=N4IgTCBcDaIKIGUAKBmMBaA6gJQPK4Fl010A5ADhAF0BfIA 
+13;C7,C14,C12,C11;C_0805_2012Metric_Pad1.18x1.45mm_HandSolder;4;0.1µF;;J;;;
+14;U4;SX1276S8S+T-X1;1;SX1276S8S+T-X1;;X;https://jlcpcb.com/partdetail/Dreamlnk-DL_RFM95868M/C2844472;C2844472;https://be.farnell.com/hoperf/rfm95w-868s2/transceiver-868mhz-fsk-ook/dp/2759294?st=rfm95 
+15;TP1;TestPoint_THTPad_1.0x1.0mm_Drill0.5mm;1;VDD;;;;;
+16;J1;GCT_USB4085-GF-A_REVA4;1;USB4085-GF-A_REVA4;;X;;;
+17;J2;JST_BM06B-GHS-TBT_LF__SN__N_;1;JST connector SEN55;;X;https://jlcpcb.com/partdetail/207057-BM06B_GHS_TBT_LF_SN_N/C189892;C189892;
+18;D4;SOD-123FL;1;D_Schottky;;X;;;
+19;J4;TerminalBlock_Phoenix_MPT-0,5-6-2.54_1x06_P2.54mm_Horizontal;1;UART Connector;;X;https://jlcpcb.com/partdetail/Cixi_KefaElec-KF128_2_546P/C474924;C474924;https://www.digikey.be/nl/products/detail/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/807804
+20;R7;R_0805_2012Metric_Pad1.20x1.40mm_HandSolder;1;47k;;J;;;
+21;C6,C2,C13;C_0805_2012Metric_Pad1.18x1.45mm_HandSolder;3;10µF;;J;;;
+22;R3;R_0805_2012Metric_Pad1.20x1.40mm_HandSolder;1;10k;;J;;;
+23;R6;R_0805_2012Metric_Pad1.20x1.40mm_HandSolder;1;20k;;J;;;
+24;U1;SOT-223-3_TabPin2;1;LD1117S33TR_SOT223;;X;https://jlcpcb.com/partdetail/Stmicroelectronics-LD1117S33TR/C86781;C86781;https://www.digikey.be/nl/products/detail/stmicroelectronics/LD1117S33TR/585766?s=N4IgTCBcDaIDIBECMKDsBlAzJgKgJRAF0BfIA 
