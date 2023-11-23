@@ -2,7 +2,6 @@
 #include <Wire.h>
 
 #include <SensirionI2CSen5x.h>
-#include <axp20x.h>
 
 #include <configuration.h>
 #include <sleep.h>
@@ -10,11 +9,9 @@
 
 SensirionI2CSen5x sen55;
 
-AXP20X_Class axp;
 bool pmu_irq = false;
 String baChStatus = "No charging";
 
-bool axp192_found = false;
 bool packetSent, packetQueued;
 static uint8_t txBuffer[DATA_LENGTH];
 float f_pm1p0, f_pm2p5, f_pm4p0, f_pm10p0, f_hum, f_temp, f_voc, f_nox;
@@ -36,12 +33,6 @@ bool try_send() {
 //   Serial.printf("Entering deep sleep for %llu seconds\n", secToWake);
 
 //   LMIC_shutdown(); // cleanly shutdown the radio
-
-//   if (axp192_found) {
-//     // turn on after initial testing with real hardware
-//     axp.setPowerOutPut(AXP192_LDO2, AXP202_OFF); // LORA radio
-//     axp.setPowerOutPut(AXP192_LDO3, AXP202_OFF); // GPS main power
-//   }
 
 //   // sleep_millis(msecToWake); // also an option 
 //   sleep_seconds(secToWake); 
@@ -71,53 +62,6 @@ void callback(uint8_t message) {
   }
 }
 
-void axp192Init() {
-  if (axp192_found) {
-    if (!axp.begin(Wire, AXP192_SLAVE_ADDRESS)) {
-      Serial.println("AXP192 Begin PASS");
-    } else {
-      Serial.println("AXP192 Begin FAIL");
-    }
-    // axp.setChgLEDMode(LED_BLINK_4HZ);
-    Serial.printf("DCDC1: %s\n", axp.isDCDC1Enable() ? "ENABLE" : "DISABLE");
-    Serial.printf("DCDC2: %s\n", axp.isDCDC2Enable() ? "ENABLE" : "DISABLE");
-    Serial.printf("LDO2: %s\n", axp.isLDO2Enable() ? "ENABLE" : "DISABLE");
-    Serial.printf("LDO3: %s\n", axp.isLDO3Enable() ? "ENABLE" : "DISABLE");
-    Serial.printf("DCDC3: %s\n", axp.isDCDC3Enable() ? "ENABLE" : "DISABLE");
-    Serial.printf("Exten: %s\n", axp.isExtenEnable() ? "ENABLE" : "DISABLE");
-    Serial.println("----------------------------------------");
-
-    axp.setPowerOutPut(AXP192_LDO2, AXP202_ON); // LORA radio
-    axp.setPowerOutPut(AXP192_LDO3, AXP202_ON); // GPS main power
-    axp.setPowerOutPut(AXP192_DCDC2, AXP202_ON);
-    axp.setPowerOutPut(AXP192_EXTEN, AXP202_ON);
-    axp.setPowerOutPut(AXP192_DCDC1, AXP202_ON);
-    axp.setDCDC1Voltage(3300); // for the OLED power
-
-    Serial.printf("DCDC1: %s\n", axp.isDCDC1Enable() ? "ENABLE" : "DISABLE");
-    Serial.printf("DCDC2: %s\n", axp.isDCDC2Enable() ? "ENABLE" : "DISABLE");
-    Serial.printf("LDO2: %s\n", axp.isLDO2Enable() ? "ENABLE" : "DISABLE");
-    Serial.printf("LDO3: %s\n", axp.isLDO3Enable() ? "ENABLE" : "DISABLE");
-    Serial.printf("DCDC3: %s\n", axp.isDCDC3Enable() ? "ENABLE" : "DISABLE");
-    Serial.printf("Exten: %s\n", axp.isExtenEnable() ? "ENABLE" : "DISABLE");
-
-    pinMode(PMU_IRQ, INPUT_PULLUP);
-    attachInterrupt(PMU_IRQ, [] {
-      pmu_irq = true;
-    }, FALLING);
-
-    axp.adc1Enable(AXP202_BATT_CUR_ADC1, 1);
-    axp.enableIRQ(AXP202_VBUS_REMOVED_IRQ | AXP202_VBUS_CONNECT_IRQ | AXP202_BATT_REMOVED_IRQ | AXP202_BATT_CONNECT_IRQ, 1);
-    axp.clearIRQ();
-
-    if (axp.isChargeing()) {
-      baChStatus = "Charging";
-    }
-  } else {
-    Serial.println("AXP192 not found");
-  }
-}
-
 uint16_t read_measurements(SensirionI2CSen5x &sen55, float &pm1p0, float &pm2p5, float &pm4p0, 
   float &pm10p0, float &hum, float &temp, float &voc, float &nox) {
 
@@ -139,7 +83,6 @@ void setup() {
   Wire.begin();
   sen55.begin(Wire);
 
-  axp192Init();
 
   // TTN setup
   if (!ttn_setup()) {
@@ -160,21 +103,21 @@ void loop() {
   uint16_t error = 0x0000;
   char errorMsg[256];
 
-  Serial.print("Starting measurements...");
+  //Serial.print("Starting measurements...");
   error = sen55.startMeasurement();
 
   if (!error) {
     // SLEEP MCU FOR 2.5 TO 3 MINUTES FOR RELIABLE MEASUREMENTS
     delay(120000);
 
-    Serial.print("Awake again.");
+    //Serial.print("Awake again.");
 
     error = read_measurements(
       sen55, f_pm1p0, f_pm2p5, f_pm4p0, f_pm10p0, f_hum, f_temp, f_voc, f_nox
       );
   }
   
-  if (error) {
+  /* if (error) {
     Serial.print("Error trying to execute measurements: ");
     errorToString(error, errorMsg, 256);
     Serial.println(errorMsg);
@@ -214,7 +157,7 @@ void loop() {
     if (isnan(f_nox))
       Serial.println("n/a");
     else
-      Serial.println(f_nox);
+      Serial.println(f_nox); */
 
     uint32_t u_pm1p0 = f_pm1p0 * 100;
     uint32_t u_pm2p5 = f_pm2p5 * 100;
@@ -232,10 +175,10 @@ void loop() {
       txBuffer[1+i*2] = (data[i]) & 0xFF;
     }
 
-    for (byte i = 0; i < 16; i++) {
+    /* for (byte i = 0; i < 16; i++) {
       Serial.print(txBuffer[i]);
       Serial.print("\t");
-    }
+    } */
 
     ttn_loop();
 
@@ -249,7 +192,7 @@ void loop() {
       if (try_send()) {
         last = millis();
         first = false;
-        Serial.println("TRANSMITTED");
+        //Serial.println("TRANSMITTED");
       } else {
         if (first) 
           first = false;
@@ -259,4 +202,4 @@ void loop() {
       }
     }
   }
-}
+//}
