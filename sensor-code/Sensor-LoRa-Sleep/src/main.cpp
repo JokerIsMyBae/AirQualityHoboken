@@ -16,6 +16,8 @@ void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
 static uint8_t txBuffer[DATA_LENGTH];
 static osjob_t sendjob;
 
+bool gotosleep = false;
+
 // Pin mapping
 const lmic_pinmap lmic_pins = {
     .nss = NSS_GPIO,
@@ -142,6 +144,7 @@ void onEvent (ev_t ev) {
       }
       // Schedule next transmission
       os_setTimedCallback(&sendjob, os_getTime()+sec2osticks(TX_INTERVAL), do_send);
+      gotosleep = true;
       break;
     case EV_LOST_TSYNC:
       Serial.println(F("EV_LOST_TSYNC"));
@@ -203,5 +206,16 @@ void setup() {
 }
 
 void loop() {
+  if (gotosleep) {
+    sen55.stopMeasurement();
+    Serial.println("Sleeping...");
+    delay(SLEEP_MS);
+    Serial.println("Ending sleep.");
+    sen55.startMeasurement();
+    delay(120000);
+    Serial.println("Sensor is ready.");
+    gotosleep = false;
+  } else {
     os_runloop_once();
+  }
 }
