@@ -19,8 +19,6 @@ bool packetSent, packetQueued;
 static uint8_t txBuffer[DATA_LENGTH];
 float f_pm1p0, f_pm2p5, f_pm4p0, f_pm10p0, f_hum, f_temp, f_voc, f_nox;
 
-void buildPacket(uint8_t txBuffer[]); // needed for platformio
-
 /**
    If we have a valid position send it to the server.
    @return true if we decided to send.
@@ -166,8 +164,6 @@ void loop() {
   if (!error) {
     // SLEEP MCU FOR 2.5 TO 3 MINUTES FOR RELIABLE MEASUREMENTS
     delay(120000);
-
-    Serial.print("Awake again.");
 
     error = read_measurements(
       sen55, f_pm1p0, f_pm2p5, f_pm4p0, f_pm10p0, f_hum, f_temp, f_voc, f_nox
