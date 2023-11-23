@@ -47,7 +47,7 @@ void ttn_register(void (*callback)(uint8_t message));
 #define DATA_LENGTH             16              // Size of TX buffer sent over LoRa
 
 // If not defined, we will wait for lock forever
-#define GPS_WAIT_FOR_LOCK       (60 * 1000)     // Wait after every boot for GPS lock (may need longer than 5s because we turned the gps off during deep sleep)
+// #define GPS_WAIT_FOR_LOCK       (60 * 1000)     // Wait after every boot for GPS lock (may need longer than 5s because we turned the gps off during deep sleep)
 
 // -----------------------------------------------------------------------------
 // DEBUG
