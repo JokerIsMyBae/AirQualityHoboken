@@ -8,7 +8,7 @@
 // -----------------------------------------------------------------------------
 
 #define SERIAL_BAUD             115200          // Serial debug baud rate
-#define TX_INTERVAL             600              // Seconds between each transmit
+#define TX_INTERVAL             60              // Seconds between each transmit
 #define LORAWAN_PORT            1               // Port the messages will be sent to
 #define LORAWAN_SF              DR_SF10         // Spreading factor (recommended DR_SF7 for ttn network map purposes, DR_SF10 works for slow moving trackers)
 #define DATA_LENGTH             16              // Size of TX buffer sent over LoRa
