@@ -11,7 +11,7 @@ void os_getArtEui (u1_t* buf) { memcpy_P(buf, APPEUI, 8);}
 void os_getDevEui (u1_t* buf) { memcpy_P(buf, DEVEUI, 8);}
 void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
 
-static uint8_t mydata[] = "Hello, world!";
+static uint8_t txBuffer[] = "Hello, world!";
 static osjob_t sendjob;
 
 // Pin mapping
@@ -35,7 +35,7 @@ void do_send(osjob_t* j){
         Serial.println(F("OP_TXRXPEND, not sending"));
     } else {
         // Prepare upstream data transmission at the next possible time.
-        LMIC_setTxData2(1, mydata, sizeof(mydata)-1, 0);
+        LMIC_setTxData2(1, txBuffer, sizeof(txBuffer)-1, 0);
         Serial.println(F("Packet queued"));
     }
     // Next TX is scheduled after TX_COMPLETE event.
@@ -162,9 +162,9 @@ void onEvent (ev_t ev) {
 
 
 void setup() {
+
     Serial.begin(SERIAL_BAUD);
     while (!Serial);
-    
     Serial.println(F("Starting"));
 
     SPI.begin(SCK_GPIO, MISO_GPIO, MOSI_GPIO, NSS_GPIO);
@@ -174,6 +174,9 @@ void setup() {
     // Reset the MAC state. Session and pending data transfers will be discarded.
     LMIC_reset();
 
+    LMIC_setLinkCheckMode(0);
+    LMIC_setDrTxpow(LORAWAN_SF, 14);
+
     // Start job (sending automatically starts OTAA too)
     do_send(&sendjob);
 }
@@ -181,3 +184,4 @@ void setup() {
 void loop() {
     os_runloop_once();
 }
+
