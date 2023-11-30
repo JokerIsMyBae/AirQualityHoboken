@@ -1,10 +1,10 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include <SPI.h>
 
 #include <SensirionI2CSen5x.h>
 #include <lmic.h>
 #include <hal/hal.h>
-#include <SPI.h>
 
 #include "configuration.h"
 #include "credentials.h"
