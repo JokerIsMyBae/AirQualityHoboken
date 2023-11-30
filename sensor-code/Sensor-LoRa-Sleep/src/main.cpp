@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include <SPI.h>
 
 #include <SensirionI2CSen5x.h>
 #include <lmic.h>
@@ -16,6 +15,13 @@ void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
 static uint8_t txBuffer[DATA_LENGTH];
 static osjob_t sendjob;
 
+RTC_DATA_ATTR bool senReady = true;
+RTC_DATA_ATTR lmic_t RTC_LMIC;
+
+// Bool to enable ESP to go into deep sleep
+// After deep sleep is over do_send() is executed.
+// Following do_send(), os_runloop_once() is called continuously until TXCOMPLETE 
+// After TXCOMPLETE, put ESP to sleep.
 bool gotosleep = false;
 
 // Pin mapping
@@ -29,21 +35,33 @@ const lmic_pinmap lmic_pins = {
 SensirionI2CSen5x sen55;
 float f_pm1p0, f_pm2p5, f_pm4p0, f_pm10p0, f_hum, f_temp, f_voc, f_nox;
 
-// void doDeepSleep(uint64_t secToWake)
-// {
-//   Serial.printf("Entering deep sleep for %llu seconds\n", secToWake);
+void saveLMICToRTC() {
+  Serial.println("Saving LMIC to RTC memory.");
+  RTC_LMIC = LMIC;
 
-//   LMIC_shutdown(); // cleanly shutdown the radio
+  unsigned long now = millis();
 
-//   // sleep_millis(msecToWake); // also an option 
-//   sleep_seconds(secToWake); 
-// }
+  for (int i = 0; i < MAX_BANDS; i++) {
+    ostime_t correctedAvail = RTC_LMIC.bands[i].avail - ((now / 1000.0 + 10) * OSTICKS_PER_SEC);
+    if (correctedAvail < 0) {
+      correctedAvail = 0;
+    }
+    RTC_LMIC.bands[i].avail = correctedAvail;
+  }
 
-void printHex2(unsigned v) {
-  v &= 0xff;
-  if (v < 16)
-    Serial.print('0');
-  Serial.print(v, HEX);
+  RTC_LMIC.globalDutyAvail = RTC_LMIC.globalDutyAvail - ((now / 1000.0 + 10) * OSTICKS_PER_SEC);
+  if (RTC_LMIC.globalDutyAvail < 0) {
+    RTC_LMIC.globalDutyAvail = 0;
+  }
+}
+
+void loadLMICFromRTC() {
+  LMIC = RTC_LMIC;
+}
+
+void doDeepSleep(byte sleepSeconds) {
+  esp_sleep_enable_timer_wakeup(sleepSeconds * 1000000); // in µs
+  esp_deep_sleep_start();
 }
 
 void do_send(osjob_t* j){
@@ -73,6 +91,7 @@ void do_send(osjob_t* j){
   } else {
     // Prepare upstream data transmission at the next possible time.
     LMIC_setTxData2(1, txBuffer, DATA_LENGTH, 0);
+    LMIC_setDrTxpow(LORAWAN_SF, 14);
     Serial.println(F("Packet queued"));
   }
   // Next TX is scheduled after TX_COMPLETE event.
@@ -109,22 +128,20 @@ void onEvent (ev_t ev) {
         Serial.println(devaddr, HEX);
         Serial.print("AppSKey: ");
         for (size_t i=0; i<sizeof(artKey); ++i) {
-          if (i != 0)
-            Serial.print("-");
-          printHex2(artKey[i]);
+          Serial.print(artKey[i], HEX);
+          Serial.print(" ");
         }
         Serial.println("");
         Serial.print("NwkSKey: ");
         for (size_t i=0; i<sizeof(nwkKey); ++i) {
-                if (i != 0)
-                        Serial.print("-");
-                printHex2(nwkKey[i]);
+          Serial.print(nwkKey[i], HEX);
+          Serial.print(" ");
         }
         Serial.println();
       }
       // Disable link check validation (automatically enabled
       // during join, but because slow data rates change max TX
-      // size, we don't use it in this example.
+      // size, we don't use it.
       LMIC_setLinkCheckMode(0);
       break;
     case EV_JOIN_FAILED:
@@ -142,8 +159,6 @@ void onEvent (ev_t ev) {
         Serial.print(LMIC.dataLen);
         Serial.println(F(" bytes of payload"));
       }
-      // Schedule next transmission
-      os_setTimedCallback(&sendjob, os_getTime()+sec2osticks(TX_INTERVAL), do_send);
       gotosleep = true;
       break;
     case EV_LOST_TSYNC:
@@ -189,33 +204,34 @@ void setup() {
 
   Wire.begin();
   sen55.begin(Wire);
-  sen55.startMeasurement();
-
-  SPI.begin(SCK_GPIO, MISO_GPIO, MOSI_GPIO, NSS_GPIO);
 
   // LMIC init
   os_init();
   // Reset the MAC state. Session and pending data transfers will be discarded.
   LMIC_reset();
 
-  LMIC_setLinkCheckMode(0);
-  LMIC_setDrTxpow(LORAWAN_SF, 14);
+  if (RTC_LMIC.seqnoUp) {
+    loadLMICFromRTC();
+  }
 
   // Start job (sending automatically starts OTAA too)
-  do_send(&sendjob);
+  if (senReady) {
+    do_send(&sendjob);
+  }
 }
 
 void loop() {
   if (gotosleep) {
     sen55.stopMeasurement();
-    Serial.println("Sleeping...");
-    delay(SLEEP_MS);
-    Serial.println("Ending sleep.");
-    sen55.startMeasurement();
-    delay(120000);
-    Serial.println("Sensor is ready.");
-    gotosleep = false;
-  } else {
+    senReady = false;
+
+    saveLMICToRTC();
+    doDeepSleep(SLEEP_S);
+  } else if (!senReady) {
+    Serial.println("Sleep 2 min for sensor delay.");
+    senReady = true;
+    doDeepSleep(120);
+  } else { // if gotosleep == false and senready == true, check for queued packet
     os_runloop_once();
   }
 }
