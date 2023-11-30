@@ -228,7 +228,8 @@ void loop() {
     saveLMICToRTC();
     doDeepSleep(SLEEP_S);
   } else if (!senReady) {
-    Serial.println("Sleep 2 min for sensor delay.");
+    Serial.println("Sleep 2 min for sensor delay");
+    sen55.startMeasurement();
     senReady = true;
     doDeepSleep(120);
   } else { // if gotosleep == false and senready == true, check for queued packet
