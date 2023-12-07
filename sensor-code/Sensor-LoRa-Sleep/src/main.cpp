@@ -8,10 +8,9 @@
 #include "configuration.h"
 #include "credentials.h"
 
-/**
- * TRY TO SWAP THE SETUP SCHEDULING OF SEND_JOB WITH TIMED CALLBACK
- * THIS MIGHT FIX THE ISSUE OF NOT GOING INTO TX_START EVENT
-*/
+#ifdef LORA_DEBUG
+#include "lora_debug.h"
+#endif
 
 SensirionI2CSen5x sen55;
 
@@ -22,14 +21,9 @@ void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
 static uint8_t txBuffer[DATA_LENGTH];
 static osjob_t sendjob;
 
-RTC_DATA_ATTR bool senReady = true;
+// Data to be put in RTC memory; doesn't get deleted in deep sleep
 RTC_DATA_ATTR lmic_t RTC_LMIC;
-
-// Bool to enable ESP to go into deep sleep
-// After deep sleep is over do_send() is executed.
-// Following do_send(), os_runloop_once() is called continuously until TXCOMPLETE 
-// After TXCOMPLETE, put ESP to sleep.
-bool gotosleep = false;
+RTC_DATA_ATTR bool senReady = true, gotosleep = false;
 
 // Pin mapping
 const lmic_pinmap lmic_pins = {
@@ -44,23 +38,25 @@ void saveLMICToRTC() {
   Serial.println("Saving LMIC to RTC memory");
   RTC_LMIC = LMIC;
 
+  // Compensate availability timer values for each band; else it keeps going up and tx_start interval gets bigger
   unsigned long now = millis();
 
   for (int i = 0; i < MAX_BANDS; i++) {
-    ostime_t correctedAvail = RTC_LMIC.bands[i].avail - ((now / 1000.0 + 30) * OSTICKS_PER_SEC);
+    ostime_t correctedAvail = RTC_LMIC.bands[i].avail - ((now / 1000.0 + TX_INTERVAL) * OSTICKS_PER_SEC);
     if (correctedAvail < 0) {
       correctedAvail = 0;
     }
     RTC_LMIC.bands[i].avail = correctedAvail;
   }
 
-  RTC_LMIC.globalDutyAvail = RTC_LMIC.globalDutyAvail - ((now / 1000.0 + 30) * OSTICKS_PER_SEC);
+  RTC_LMIC.globalDutyAvail = RTC_LMIC.globalDutyAvail - ((now / 1000.0 + TX_INTERVAL) * OSTICKS_PER_SEC);
   if (RTC_LMIC.globalDutyAvail < 0) {
     RTC_LMIC.globalDutyAvail = 0;
   }
 }
 
 void loadLMICFromRTC() {
+  Serial.println("Loading LMIC from RTC memory");
   LMIC = RTC_LMIC;
 }
 
@@ -77,6 +73,8 @@ void do_send(osjob_t* j){
     f_pm1p0, f_pm2p5, f_pm4p0, f_pm10p0, f_hum, f_temp, f_voc, f_nox
   );
 
+  // Convert floats to uints for smaller data size
+  // Payload formatter in TTN reverts conversion
   uint32_t u_pm1p0 = f_pm1p0 * 100;
   uint32_t u_pm2p5 = f_pm2p5 * 100;
   uint32_t u_pm4p0 = f_pm4p0 * 100;
@@ -88,6 +86,7 @@ void do_send(osjob_t* j){
 
   uint32_t data[8] = { u_pm1p0, u_pm2p5, u_pm4p0, u_pm10p0, u_hum, u_temp, u_voc, u_nox };
 
+  // Put data in txBuffer
   for (byte i = 0; i < 8; i++) {
     txBuffer[0+i*2] = (data[i] >> 8) & 0xFF;
     txBuffer[1+i*2] = (data[i]) & 0xFF;
@@ -99,7 +98,9 @@ void do_send(osjob_t* j){
   } else {
     // Prepare upstream data transmission at the next possible time.
     LMIC_setTxData2(LORAWAN_PORT, txBuffer, DATA_LENGTH, 0);
+    // Set spread factor to static value (setTxData2 adaptively sets SF; don't allow)
     LMIC_setDrTxpow(LORAWAN_SF, 14);
+
     Serial.println(F("Packet queued"));
   }
   // Next TX is scheduled after TX_COMPLETE event.
@@ -137,13 +138,11 @@ void onEvent (ev_t ev) {
         Serial.print("AppSKey: ");
         for (size_t i=0; i<sizeof(artKey); ++i) {
           Serial.print(artKey[i], HEX);
-          Serial.print(" ");
         }
         Serial.println("");
         Serial.print("NwkSKey: ");
         for (size_t i=0; i<sizeof(nwkKey); ++i) {
           Serial.print(nwkKey[i], HEX);
-          Serial.print(" ");
         }
         Serial.println();
       }
@@ -167,6 +166,7 @@ void onEvent (ev_t ev) {
         Serial.print(LMIC.dataLen);
         Serial.println(F(" bytes of payload"));
       }
+      // Go to sleep on completion of TX
       gotosleep = true;
       break;
     case EV_LOST_TSYNC:
@@ -196,7 +196,7 @@ void onEvent (ev_t ev) {
     case EV_JOIN_TXCOMPLETE:
       Serial.println(F("EV_JOIN_TXCOMPLETE: no JoinAccept"));
       break;
-
+      
     default:
       Serial.print(F("Unknown event: "));
       Serial.println((unsigned) ev);
@@ -204,12 +204,12 @@ void onEvent (ev_t ev) {
   }
 }
 
+
 void setup() {
   Serial.begin(SERIAL_BAUD);
   while (!Serial);
 
-  Serial.println(F("Executing void setup()"));
-
+  // Init communication with sensor
   Wire.begin();
   sen55.begin(Wire);
 
@@ -217,13 +217,17 @@ void setup() {
   os_init();
   // Reset the MAC state. Session and pending data transfers will be discarded.
   LMIC_reset();
+  // Disable adaptive data rate/adaptive spread factor
+  LMIC_setAdrMode(false);
 
-  if (RTC_LMIC.seqnoUp) {
+  // Only load LMIC config when planning to send (aka sensor is ready to be read)
+  if (RTC_LMIC.seqnoUp && senReady) {
     loadLMICFromRTC();
   }
 
-  Serial.print("senReady = ");
-  Serial.println(senReady);
+  #ifdef LORA_DEBUG
+    LoraWANDebug(LMIC);
+  #endif
 
   // Start job (sending automatically starts OTAA too)
   if (senReady) {
@@ -233,17 +237,22 @@ void setup() {
 
 void loop() {
   if (gotosleep) {
+    // Turn off sensor, save LMIC config and put esp in deep sleep
+    Serial.println("Stopping sen55");
     sen55.stopMeasurement();
     senReady = false;
+    gotosleep = false;
     saveLMICToRTC();
     doDeepSleep(SLEEP_S);
+  
+  } else if (!senReady) {
+    // Start sensor and go back to deep sleep waiting for sensor setup time
+    Serial.println("Starting sen55");
+    sen55.startMeasurement();
+    senReady = true;
+    doDeepSleep(SENSOR_SETUP_S);
   } else {
-    if (!senReady) {
-      sen55.startMeasurement();
-      senReady = true;
-      doDeepSleep(120);
-    } else {
-      os_runloop_once();
-    }
+    // Check if any jobs are queued; if so, execute job
+    os_runloop_once();
   }
 }
