@@ -8,12 +8,12 @@
 // -----------------------------------------------------------------------------
 
 #define SERIAL_BAUD    115200                       // Serial debug baud rate
+#define DATA_LENGTH    16                           // Size of TX buffer sent over LoRa
 #define TX_INTERVAL    60                           // Seconds between each transmit
-#define SENSOR_SETUP_S 30
-#define SLEEP_S        TX_INTERVAL - SENSOR_SETUP_S // Seconds of sleep (= tx_interval - sensor setup time) 
+#define SENSOR_SETUP_S 30                           // Time needed for sensor to return valid measurements (at least 2 min)
+#define SLEEP_S        TX_INTERVAL - SENSOR_SETUP_S // Seconds of deep sleep for ESP32 (= tx_interval - sensor setup time) 
 #define LORAWAN_PORT   1                            // Port the messages will be sent to
 #define LORAWAN_SF     EU868_DR_SF10                // Spreading factor (recommended DR_SF7 for ttn network map purposes, DR_SF10 works for slow moving trackers)
-#define DATA_LENGTH    16                           // Size of TX buffer sent over LoRa
 
 // -----------------------------------------------------------------------------
 // Enable debugging
