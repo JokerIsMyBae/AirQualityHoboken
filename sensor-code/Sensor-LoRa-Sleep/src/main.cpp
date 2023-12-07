@@ -14,6 +14,7 @@
 
 SensirionI2CSen5x sen55;
 
+// These functions are used by OTAA
 void os_getArtEui (u1_t* buf) { memcpy_P(buf, APPEUI, 8);}
 void os_getDevEui (u1_t* buf) { memcpy_P(buf, DEVEUI, 8);}
 void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
@@ -97,10 +98,16 @@ void do_send(osjob_t* j){
     Serial.println(F("OP_TXRXPEND, not sending"));
   } else {
     // Prepare upstream data transmission at the next possible time.
-    LMIC_setTxData2(LORAWAN_PORT, txBuffer, DATA_LENGTH, 0);
+    int error = LMIC_setTxData2(LORAWAN_PORT, txBuffer, DATA_LENGTH, 0);
     // Set spread factor to static value (setTxData2 adaptively sets SF; don't allow)
     LMIC_setDrTxpow(LORAWAN_SF, 14);
 
+    Serial.print("Error: ");
+    Serial.println(error);
+    if (error) {
+      Serial.println("Error registered, clearing data");
+      LMIC_clrTxData();
+    }
     Serial.println(F("Packet queued"));
   }
   // Next TX is scheduled after TX_COMPLETE event.
