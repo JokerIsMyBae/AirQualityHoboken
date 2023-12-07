@@ -1,0 +1,44 @@
+### Footprint positions - created on Thu Nov 30 12:39:11 2023 ###
+### Printed by KiCad version 7.0.8
+## Unit = mm, Angle = deg.
+## Side : top
+# Ref     Val                  Package                                                            PosX       PosY       Rot  Side
+C1        100nF                C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    140.4620   -84.8360   90.0000  top
+C2        10µF                C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    140.4620   -75.9675  -90.0000  top
+C3        1µF                 C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    172.6925   -77.7490  180.0000  top
+C4        1µF                 C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    172.6925   -80.0350  180.0000  top
+C5        1µF                 C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    143.9035   -78.7400  -90.0000  top
+C6        10µF                C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    140.3475   -69.0665  -90.0000  top
+C7        0.1µF               C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    143.9035   -69.0665  -90.0000  top
+C8        100nF                C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    149.6275  -106.4260    0.0000  top
+C9        1µF                 C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    177.4480   -75.4845   90.0000  top
+C10       1µF                 C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    177.7020   -71.4205  -90.0000  top
+C11       0.1µF               C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    135.8900   -69.2150   90.0000  top
+C12       0.1µF               C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    133.0960   -69.2150   90.0000  top
+C13       10µF                C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    135.8900   -73.6600   90.0000  top
+C14       0.1µF               C_0805_2012Metric_Pad1.18x1.45mm_HandSolder                    133.0960   -73.6600   90.0000  top
+D1        LED                  LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder                  140.4620   -80.1710  -90.0000  top
+D2        LED                  LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder                  129.5400   -97.7900   90.0000  top
+D3        LED                  LED_0805_2012Metric_Pad1.15x1.40mm_HandSolder                  132.0800   -97.7900   90.0000  top
+D4        D_Schottky           SOD-123FL                                                      130.8100   -93.9800    0.0000  top
+IC1       CP2102N-A02-GQFN24   QFN50P400X400X80-25N                                           128.7580   -75.2660    0.0000  top
+J1        USB4085-GF-A_REVA4   GCT_USB4085-GF-A_REVA4                                         129.4050   -86.3550  -90.0000  top
+J2        JST_connector_SEN55  JST_BM06B-GHS-TBT_LF__SN__N_                                   185.6740   -99.7250   90.0000  top
+J3        ufl_connector        U.FL_Molex_MCRF_73412-0110_Vertical                            173.9410   -68.6050    0.0000  top
+J4        UART_Connector       TerminalBlock_Phoenix_MPT-0,5-6-2.54_1x06_P2.54mm_Horizontal   183.3880   -80.7720   90.0000  top
+R1        1kΩ                 R_0805_2012Metric_Pad1.20x1.40mm_HandSolder                    144.0180   -84.5660  -90.0000  top
+R2        4k7                  R_0805_2012Metric_Pad1.20x1.40mm_HandSolder                    173.8920   -73.4150   90.0000  top
+R3        10k                  R_0805_2012Metric_Pad1.20x1.40mm_HandSolder                    143.9035   -73.6545  -90.0000  top
+R4        4k7                  R_0805_2012Metric_Pad1.20x1.40mm_HandSolder                    168.6400   -73.6600  180.0000  top
+R5        4k7                  R_0805_2012Metric_Pad1.20x1.40mm_HandSolder                    168.6400   -68.5800  180.0000  top
+R6        20k                  R_0805_2012Metric_Pad1.20x1.40mm_HandSolder                    133.0960   -78.2320  -90.0000  top
+R7        47k                  R_0805_2012Metric_Pad1.20x1.40mm_HandSolder                    135.8900   -78.2320   90.0000  top
+R8        1k                   R_0805_2012Metric_Pad1.20x1.40mm_HandSolder                    132.0800  -102.2350   90.0000  top
+R9        1k                   R_0805_2012Metric_Pad1.20x1.40mm_HandSolder                    129.5400  -102.2350   90.0000  top
+SW1       TC-1102-B-C-B        SW_PUSH_6mm                                                    139.4820  -105.6120   90.0000  top
+SW2       TC-1102-B-C-B        SW_PUSH_6mm                                                    172.8240   -86.1060    0.0000  top
+U1        LD1117S33TR_SOT223   SOT-223-3_TabPin2                                              141.7320   -92.3040  -90.0000  top
+U2        ESP32-WROOM-32       MODULE_ESP32-WROOM-32                                          156.6450   -72.1250    0.0000  top
+U3        SGP41-D-R4           XDCR_SGP41-D-R4                                                177.2430   -79.5270   90.0000  top
+U4        SX1276S8S+T-X1       SX1276S8S+T-X1                                                 156.5600   -95.6000    0.0000  top
+## End
