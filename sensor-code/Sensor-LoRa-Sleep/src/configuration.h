@@ -7,12 +7,13 @@
 // Configuration
 // -----------------------------------------------------------------------------
 
-#define SERIAL_BAUD     115200              // Serial debug baud rate
-#define TX_INTERVAL     180                 // Seconds between each transmit
-#define SLEEP_S         TX_INTERVAL - 121   // Seconds of sleep (= tx_interval - 2 minutes for sensor ramp up, 1 extra second to account for execution delays) 
-#define LORAWAN_PORT    1                   // Port the messages will be sent to
-#define LORAWAN_SF      EU868_DR_SF10       // Spreading factor (recommended DR_SF7 for ttn network map purposes, DR_SF10 works for slow moving trackers)
-#define DATA_LENGTH     16                  // Size of TX buffer sent over LoRa
+#define SERIAL_BAUD    115200                       // Serial debug baud rate
+#define TX_INTERVAL    60                           // Seconds between each transmit
+#define SENSOR_SETUP_S 30
+#define SLEEP_S        TX_INTERVAL - SENSOR_SETUP_S // Seconds of sleep (= tx_interval - sensor setup time) 
+#define LORAWAN_PORT   1                            // Port the messages will be sent to
+#define LORAWAN_SF     EU868_DR_SF10                // Spreading factor (recommended DR_SF7 for ttn network map purposes, DR_SF10 works for slow moving trackers)
+#define DATA_LENGTH    16                           // Size of TX buffer sent over LoRa
 
 // -----------------------------------------------------------------------------
 // LoRa SPI
