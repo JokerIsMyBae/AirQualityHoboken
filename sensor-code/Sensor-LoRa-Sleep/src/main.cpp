@@ -8,6 +8,13 @@
 #include "configuration.h"
 #include "credentials.h"
 
+/**
+ * TRY TO SWAP THE SETUP SCHEDULING OF SEND_JOB WITH TIMED CALLBACK
+ * THIS MIGHT FIX THE ISSUE OF NOT GOING INTO TX_START EVENT
+*/
+
+SensirionI2CSen5x sen55;
+
 void os_getArtEui (u1_t* buf) { memcpy_P(buf, APPEUI, 8);}
 void os_getDevEui (u1_t* buf) { memcpy_P(buf, DEVEUI, 8);}
 void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
@@ -32,24 +39,22 @@ const lmic_pinmap lmic_pins = {
     .dio = {DIO0_GPIO, DIO1_GPIO, DIO2_GPIO},
 };
 
-SensirionI2CSen5x sen55;
-float f_pm1p0, f_pm2p5, f_pm4p0, f_pm10p0, f_hum, f_temp, f_voc, f_nox;
 
 void saveLMICToRTC() {
-  Serial.println("Saving LMIC to RTC memory.");
+  Serial.println("Saving LMIC to RTC memory");
   RTC_LMIC = LMIC;
 
   unsigned long now = millis();
 
   for (int i = 0; i < MAX_BANDS; i++) {
-    ostime_t correctedAvail = RTC_LMIC.bands[i].avail - ((now / 1000.0 + 10) * OSTICKS_PER_SEC);
+    ostime_t correctedAvail = RTC_LMIC.bands[i].avail - ((now / 1000.0 + 30) * OSTICKS_PER_SEC);
     if (correctedAvail < 0) {
       correctedAvail = 0;
     }
     RTC_LMIC.bands[i].avail = correctedAvail;
   }
 
-  RTC_LMIC.globalDutyAvail = RTC_LMIC.globalDutyAvail - ((now / 1000.0 + 10) * OSTICKS_PER_SEC);
+  RTC_LMIC.globalDutyAvail = RTC_LMIC.globalDutyAvail - ((now / 1000.0 + 30) * OSTICKS_PER_SEC);
   if (RTC_LMIC.globalDutyAvail < 0) {
     RTC_LMIC.globalDutyAvail = 0;
   }
@@ -59,12 +64,15 @@ void loadLMICFromRTC() {
   LMIC = RTC_LMIC;
 }
 
-void doDeepSleep(byte sleepSeconds) {
+void doDeepSleep(uint16_t sleepSeconds) {
+  Serial.flush();
   esp_sleep_enable_timer_wakeup(sleepSeconds * 1000000); // in µs
   esp_deep_sleep_start();
 }
 
 void do_send(osjob_t* j){
+  float f_pm1p0, f_pm2p5, f_pm4p0, f_pm10p0, f_hum, f_temp, f_voc, f_nox;
+
   sen55.readMeasuredValues(
     f_pm1p0, f_pm2p5, f_pm4p0, f_pm10p0, f_hum, f_temp, f_voc, f_nox
   );
@@ -90,7 +98,7 @@ void do_send(osjob_t* j){
     Serial.println(F("OP_TXRXPEND, not sending"));
   } else {
     // Prepare upstream data transmission at the next possible time.
-    LMIC_setTxData2(1, txBuffer, DATA_LENGTH, 0);
+    LMIC_setTxData2(LORAWAN_PORT, txBuffer, DATA_LENGTH, 0);
     LMIC_setDrTxpow(LORAWAN_SF, 14);
     Serial.println(F("Packet queued"));
   }
@@ -197,10 +205,10 @@ void onEvent (ev_t ev) {
 }
 
 void setup() {
-
   Serial.begin(SERIAL_BAUD);
   while (!Serial);
-  Serial.println(F("Starting"));
+
+  Serial.println(F("Executing void setup()"));
 
   Wire.begin();
   sen55.begin(Wire);
@@ -214,6 +222,9 @@ void setup() {
     loadLMICFromRTC();
   }
 
+  Serial.print("senReady = ");
+  Serial.println(senReady);
+
   // Start job (sending automatically starts OTAA too)
   if (senReady) {
     do_send(&sendjob);
@@ -224,15 +235,15 @@ void loop() {
   if (gotosleep) {
     sen55.stopMeasurement();
     senReady = false;
-
     saveLMICToRTC();
     doDeepSleep(SLEEP_S);
-  } else if (!senReady) {
-    Serial.println("Sleep 2 min for sensor delay");
-    sen55.startMeasurement();
-    senReady = true;
-    doDeepSleep(120);
-  } else { // if gotosleep == false and senready == true, check for queued packet
-    os_runloop_once();
+  } else {
+    if (!senReady) {
+      sen55.startMeasurement();
+      senReady = true;
+      doDeepSleep(120);
+    } else {
+      os_runloop_once();
+    }
   }
 }
