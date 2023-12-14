@@ -100,9 +100,12 @@ void do_send(osjob_t* j){
   Serial.println(error);
   if (error) {
     Serial.println("Error detected, not sending; going to sleep");
-    gotosleep = true;
+    LMIC_reset();
+    doDeepSleep(60);
     // Put MCU back to sleep; restarts tx loop, queue new packet afterwards 
   } else {
+    // Set spread factor to SF in configuration
+    LMIC_setDrTxpow(LORAWAN_SF, 14);
     Serial.println(F("Packet queued"));
     // Next TX is scheduled after TX_COMPLETE event.
   }
@@ -221,8 +224,6 @@ void setup() {
   LMIC_reset();
   // Disable adaptive data rate/adaptive spread factor
   LMIC_setAdrMode(false);
-  // Set spread factor to SF in configuration
-  LMIC_setDrTxpow(LORAWAN_SF, 14);
 
   // Only load LMIC config when planning to send (aka sensor is ready to be read)
   if (RTC_LMIC.seqnoUp && senReady) {
@@ -246,6 +247,12 @@ void loop() {
     sen55.stopMeasurement();
     senReady = false;
     gotosleep = false;
+    bit_t lmic_status = LMIC_queryTxReady();
+    while (!lmic_status) {
+      Serial.println("LMIC not ready");
+      delay(500);
+      lmic_status = LMIC_queryTxReady();
+    }
     saveLMICToRTC();
     doDeepSleep(SLEEP_S);
   
