@@ -68,6 +68,7 @@ void doDeepSleep(uint16_t sleepSeconds) {
 }
 
 void do_send(osjob_t* j){
+  Serial.println("Sending");
   float f_pm1p0, f_pm2p5, f_pm4p0, f_pm10p0, f_hum, f_temp, f_voc, f_nox;
 
   sen55.readMeasuredValues(
@@ -93,24 +94,18 @@ void do_send(osjob_t* j){
     txBuffer[1+i*2] = (data[i]) & 0xFF;
   }
 
-  // Check if there is not a current TX/RX job running
-  if (LMIC.opmode & OP_TXRXPEND) {
-    Serial.println(F("OP_TXRXPEND, not sending"));
+  // Prepare upstream data transmission at the next possible time.
+  lmic_tx_error_t error = LMIC_setTxData2_strict(LORAWAN_PORT, txBuffer, DATA_LENGTH, 0);
+  Serial.print("Error: ");
+  Serial.println(error);
+  if (error) {
+    Serial.println("Error detected, not sending; going to sleep");
+    gotosleep = true;
+    // Put MCU back to sleep; restarts tx loop, queue new packet afterwards 
   } else {
-    // Prepare upstream data transmission at the next possible time.
-    int error = LMIC_setTxData2(LORAWAN_PORT, txBuffer, DATA_LENGTH, 0);
-    // Set spread factor to static value (setTxData2 adaptively sets SF; don't allow)
-    LMIC_setDrTxpow(LORAWAN_SF, 14);
-
-    Serial.print("Error: ");
-    Serial.println(error);
-    if (error) {
-      Serial.println("Error registered, clearing data");
-      LMIC_clrTxData();
-    }
     Serial.println(F("Packet queued"));
+    // Next TX is scheduled after TX_COMPLETE event.
   }
-  // Next TX is scheduled after TX_COMPLETE event.
 }
 
 void onEvent (ev_t ev) {
@@ -226,6 +221,8 @@ void setup() {
   LMIC_reset();
   // Disable adaptive data rate/adaptive spread factor
   LMIC_setAdrMode(false);
+  // Set spread factor to SF in configuration
+  LMIC_setDrTxpow(LORAWAN_SF, 14);
 
   // Only load LMIC config when planning to send (aka sensor is ready to be read)
   if (RTC_LMIC.seqnoUp && senReady) {
