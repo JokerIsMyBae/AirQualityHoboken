@@ -34,6 +34,12 @@ const lmic_pinmap lmic_pins = {
     .dio = {DIO0_GPIO, DIO1_GPIO, DIO2_GPIO},
 };
 
+void removePollingState() {
+  bit_t lmic_status = LMIC_queryTxReady();
+  if (!lmic_status) {
+    LMIC.opmode &= ~OP_POLL;
+  }
+}
 
 void saveLMICToRTC() {
   Serial.println("Saving LMIC to RTC memory");
@@ -230,9 +236,9 @@ void setup() {
     loadLMICFromRTC();
   }
 
-  #ifdef LORA_DEBUG
+#ifdef LORA_DEBUG
     LoraWANDebug(LMIC);
-  #endif
+#endif
 
   // Start job (sending automatically starts OTAA too)
   if (senReady) {
@@ -247,15 +253,9 @@ void loop() {
     sen55.stopMeasurement();
     senReady = false;
     gotosleep = false;
-    bit_t lmic_status = LMIC_queryTxReady();
-    while (!lmic_status) {
-      Serial.println("LMIC not ready");
-      delay(500);
-      lmic_status = LMIC_queryTxReady();
-    }
+    removePollingState();
     saveLMICToRTC();
     doDeepSleep(SLEEP_S);
-  
   } else if (!senReady) {
     // Start sensor and go back to deep sleep waiting for sensor setup time
     Serial.println("Starting sen55");
