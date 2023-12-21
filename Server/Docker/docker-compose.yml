@@ -21,7 +21,7 @@ services:
     environment:
       - TZ=Europe/Brussels
     ports:
-      - '3000:3000'
+      - '3001:3000'
     networks:
       - air-quality-hoboken
     volumes:
@@ -40,6 +40,24 @@ services:
     volumes:
       - ./influxdb2-data/config:/etc/influxdb2
       - ./influxdb2-data/appdata:/var/lib/influxdb2
+
+  caddy:
+      container_name: caddy-db-air-quality-hoboken
+      image: caddy:latest
+      restart: unless-stopped
+      cap_add:
+        - NET_ADMIN
+      ports:
+        - "80:80"
+        - "443:443"
+        - "443:443/udp"
+      volumes:
+        - ./caddy-data/Caddyfile:/etc/caddy/Caddyfile # Make first tis file before running this compose "touch Caddyfile"
+        - ./caddy-data/site:/srv
+        - ./caddy-data/caddy_data:/data
+        - ./caddy-data/caddy_config:/config
+      networks:
+        - air-quality-hoboken
 
 networks:
   air-quality-hoboken:

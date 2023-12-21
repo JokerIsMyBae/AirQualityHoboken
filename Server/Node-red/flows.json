@@ -1,0 +1,216 @@
+[
+    {
+        "id": "86150e6dbfbc34b4",
+        "type": "tab",
+        "label": "AirQualityHoboken",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "415646f1cae9c80f",
+        "type": "mqtt in",
+        "z": "86150e6dbfbc34b4",
+        "name": "MQTT",
+        "topic": "v3/air-quality-hoboken@ttn/devices/+/up",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "a086249b585960c4",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 70,
+        "y": 60,
+        "wires": [
+            [
+                "2d8c81ad13e849ea"
+            ]
+        ]
+    },
+    {
+        "id": "2d8c81ad13e849ea",
+        "type": "json",
+        "z": "86150e6dbfbc34b4",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 230,
+        "y": 60,
+        "wires": [
+            [
+                "30fd031487c8e545",
+                "4e5f2e9cf090bd0d"
+            ]
+        ]
+    },
+    {
+        "id": "114bac1a516f8218",
+        "type": "influxdb out",
+        "z": "86150e6dbfbc34b4",
+        "influxdb": "70a6b26a602cbc46",
+        "name": "",
+        "measurement": "",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "AP Hogeschool",
+        "bucket": "ESP32aqs",
+        "x": 840,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "30fd031487c8e545",
+        "type": "debug",
+        "z": "86150e6dbfbc34b4",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 380,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "4485f135b99a5721",
+        "type": "change",
+        "z": "86150e6dbfbc34b4",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "measurement",
+                "pt": "msg",
+                "to": "all_sensors",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 740,
+        "y": 240,
+        "wires": [
+            [
+                "7cc385a6db6fae82"
+            ]
+        ]
+    },
+    {
+        "id": "7cc385a6db6fae82",
+        "type": "delay",
+        "z": "86150e6dbfbc34b4",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "100",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 810,
+        "y": 160,
+        "wires": [
+            [
+                "114bac1a516f8218"
+            ]
+        ]
+    },
+    {
+        "id": "4e5f2e9cf090bd0d",
+        "type": "function",
+        "z": "86150e6dbfbc34b4",
+        "name": "Format mqtt to influxdb",
+        "func": "let device_id = msg.payload.end_device_ids.device_id;\nlet rssi = msg.payload.uplink_message.rx_metadata[0].rssi;\nlet longitude = ((msg.payload.uplink_message.locations.user.longitude != undefined) ? msg.payload.uplink_message.locations.user.longitude : null);\nlet latitude = ((msg.payload.uplink_message.locations.user.latitude != undefined) ? msg.payload.uplink_message.locations.user.latitude : null);\nlet pm1p0 = msg.payload.uplink_message.decoded_payload.pm1p0;\nlet pm2p5 = msg.payload.uplink_message.decoded_payload.pm2p5;\nlet pm4p0 = msg.payload.uplink_message.decoded_payload.pm4p0;\nlet pm10p0 = msg.payload.uplink_message.decoded_payload.pm10p0;\nlet hum = msg.payload.uplink_message.decoded_payload.hum;\nlet temp = msg.payload.uplink_message.decoded_payload.temp;\nlet voc =  msg.payload.uplink_message.decoded_payload.voc;\nlet nox = msg.payload.uplink_message.decoded_payload.nox;\n// let battery = msg.payload.uplink_message.decoded_payload.battery\n\n\nmsg.measurement = device_id;\n\nmsg.payload = {\n    device_id: device_id,\n    rssi: rssi,\n    longitude: longitude,\n    latitude: latitude,\n    pm1p0: ((pm1p0 < 300) ? pm1p0 : null),\n    pm2p5: ((pm2p5 < 300) ? pm2p5 : null), \n    pm4p0: ((pm4p0 < 300) ? pm4p0 : null), \n    pm10p0: ((pm10p0 < 300) ? pm10p0 : null),  \n    hum: ((hum < 300) ? hum : null),  \n    temp: ((temp < 300) ? temp : null),\n    voc: ((voc < 300) ? voc : null), \n    nox: ((nox < 300) ? nox : null), \n    //battery: ((battery < 101) ? nox : battery),\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 450,
+        "y": 60,
+        "wires": [
+            [
+                "114bac1a516f8218",
+                "4485f135b99a5721",
+                "c6dd067a51a1212b"
+            ]
+        ]
+    },
+    {
+        "id": "c6dd067a51a1212b",
+        "type": "debug",
+        "z": "86150e6dbfbc34b4",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 680,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "a086249b585960c4",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "eu1.cloud.thethings.network",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "70a6b26a602cbc46",
+        "type": "influxdb",
+        "hostname": "172.18.0.3",
+        "port": "8086",
+        "protocol": "http",
+        "database": "ESP32aqs",
+        "name": "",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "2.0",
+        "url": "http://influx-db-air-quality-hoboken:8086",
+        "rejectUnauthorized": false
+    }
+]
